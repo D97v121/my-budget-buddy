@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<!-- Main Content -->
+
+<table>
+    <thead>
+        <tr>
+            <th>Title</th>
+            <th>Note</th>
+            <th>Date</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="notesTable">
+        <tr class="edit-form">
+            <td>1</td>
+            <td>Meeting Notes</td>
+            <td>Discussed the new project timeline and goals.</td>
+            <td>2024-09-23</td>
+            <td>
+                <button>Edit</button>
+                <button>Delete</button>
+            </td>
+        </tr>
+        <!-- More rows can be added dynamically -->
+    </tbody>
+</table>
+
+
+{% endblock %}

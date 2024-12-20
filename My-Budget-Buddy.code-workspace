@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "My-Budget-Buddy"
+	},
+	"python.pythonPath": "/Users/davywilliams/Documents/My-Budget-Buddy/.venv/bin/python",
+    "python.analysis.extraPaths": [
+        "./.venv/lib/python3.9/site-packages"
+    ]
+}
+

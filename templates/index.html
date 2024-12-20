@@ -1,0 +1,152 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<!-- Main Content -->
+<div class="stats-container">
+  <div class="stat1">
+    <canvas id="myChart" width="400" height="400"></canvas>
+    <div class="circleLabel">{{ left_in_spend | usd }} left</div>
+  </div>
+  <div class="stat2">
+    <canvas id="myChart2" width="400" height="400"></canvas>
+    <div class="circleLabel">Money distribution</div>
+  </div>
+  <div class="stat1">
+    <canvas id="myChart3" width="400" height="400"></canvas>
+    <div class="circleLabel">Expenses</div>
+  </div>
+</div>
+
+<main>
+  <div class="main">
+    <div class ="container">
+      <h2 class="mt-5">Record transactions manually
+        <form id="transactionForm" action="/" method="POST" class="needs-validation" novalidate>
+          <input type="hidden" name="form_id" value="transactionForm">
+          <div class="form-group">
+            <select required name="category" id="category" class="form-control form-select">
+              <option value="" disabled selected>Choose a Category</option>
+              <option class="select" value="allMoney">General</option>
+              <option class="select" value="save">Save</option>
+              <option class="select" value="spend">Spend</option>
+              <option class="select" value="give">Give</option>
+              <option class="select" value="invest">Invest</option>
+              <option class="select" value="expense">Expense</option>
+            </select>
+            <div class="invalid-feedback">
+              Please select a category.
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="input-container">
+              <label class = "label">$</label>
+              <input required name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transaction amount" onchange="correctDecimals(this)">
+            </div>
+            <div class="invalid-feedback">
+              Please enter a valid amount.
+            </div>
+          </div>
+          <div class="form-group">
+            <input name="transaction_description" class="form-control" type="text" placeholder="Short description (optional)" maxlength="60">
+          </div>
+          <div class="form-group">
+            <select required name="tag" id="tag" class="form-control form-select" >
+              <option class="select" disabled selected>Choose a tag</option>
+              <option class="select" value="none">None</option>
+              {% for tag in tags_list %}
+                <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+              {% endfor %}
+            </select>
+            <div id="create_tag_link">
+              <a href= "{{ url_for('tags') }}">Create tag</a>
+            </div>
+          </div>
+          <button type="submit" id="submit1" class="btn">Submit</button>
+        </form>
+      </h2>
+    </div>
+
+    <div class ="container">
+      <h2 class="mt-5">Transfer Money
+        <form id="transferForm" class="needs-validation" action="/" method="POST" novalidate>
+          <input type="hidden" name="form_id" value="transferForm">
+          <input type="hidden"  name="tag_id" value="tag.id">
+
+          <select required name="fromCategory" id="fromCategory" class="form-control form-select">
+            <option value="" disabled selected>From</option>
+            <option class="select" value="save">Save</option>
+            <option class="select" value="spend">Spend</option>
+            <option class="select" value="give">Give</option>
+            <option class="select" value="invest">Invest</option>
+            <option class="select" value="expense">Expense</option>
+          </select>
+          <div class="invalid-feedback">
+            Please select a category.
+          </div>
+          <select required name="toCategory" id="toCategory" class="form-control form-select">
+            <option value="" disabled selected>To</option>
+            <option class="select" value="allMoney">General</option>
+            <option class="select" value="save">Save</option>
+            <option class="select" value="spend">Spend</option>
+            <option class="select" value="give">Give</option>
+            <option class="select" value="invest">Invest</option>
+            <option class="select" value="expense">Expense</option>
+          </select>
+        <div class="invalid-feedback">
+          Please select a category.
+        </div>
+          <div class="input-container">
+            <label class = "label">$</label>
+            <input required id="recordedTransaction" name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transfer amount" onchange="correctDecimals(this)">
+            <div class="invalid-feedback weird-error">
+              Please enter a valid amount.
+            </div>
+          </div>
+          <div>
+            <input name="transaction_description" class="form-control" type="text" placeholder="Short description (optional)">
+          </div>
+        <button type="submit" id="submit2" class="btn">Submit</button>
+    </form>
+    </h2>
+    </div>
+  </div>
+</main>
+
+<!-- Bootstrap JS -->
+<script>
+  leftInSpend = "{{ left_in_spend }}";
+  spendingColor = "{{ spending_color }}"; 
+  var counts = {{ counts|tojson|safe }};
+  var colors = {{ colors|tojson|safe }};
+  var tagNames = {{ tag_names|tojson|safe }};
+  
+  document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('transactionForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+
+    function correctDecimals(input) {
+        const value = parseFloat(input.value).toFixed(2);
+        input.value = value;
+    }
+  document.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('transferForm');
+      form.addEventListener('submit', function (event) {
+          if (!form.checkValidity()) {
+              event.preventDefault();
+               event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+      });
+  });
+
+</script>
+
+{% endblock %}

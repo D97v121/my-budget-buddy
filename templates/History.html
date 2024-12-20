@@ -1,0 +1,149 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<!-- Main Content -->
+<main>
+    {% set has_records = false %}
+    <div class="mainHistory">
+
+    {% for category, records in category_records.items() %}
+    {% if records %}
+        {% set has_records = true %}
+        {% set reversed_records = records|reverse %}
+        {% set reversed_records_list = reversed_records|list %}
+        <table class="table table-group-divider table-bordered table-striped-columns">
+            <thead>
+                <th colspan="6" class="text-start center">{{ category|capitalize }} Records</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <th class="text-end">Tag</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-end">Root</th>
+                    <th class="text-end">Description</th>
+                    <th class="text-end">Date</th>
+                </tr>
+                {% for record in reversed_records_list[:10] %}
+                    <tr class="record-row" data-record-id="{{ record.id }}">
+                        <td class="text-end column_width">{{ record.tag }}</td>
+                        <td class="text-end column_width">{{ record.amount|usd }}</td>
+                        <td class="text-end column_width">{{ record.root }}</td>
+                        <td class="text-end column_width">{{ record.description }}</td>
+                        <td class="text-end column_width">{{ record.timestamp | timestamp_editor }}</td>
+                        <td class="edit-form text-end row_width" style="display: none;">
+                    </tr>
+                    <tr class="edit-form" style="display: none;">
+                        
+                            <form method="POST" action="{{ url_for('update_record', record_id=record.id) }}">
+                                <input type="hidden" name="category" value="{{ category }}">
+                                <input type="hidden" name="record_id" value="{{ record.id }}">
+                                <input type="hidden" name="deleteBoolean" value="false">
+                            
+                            <td>
+                                <select required name="tag" id="tag" class="form-control form-select">
+                                    <option class="select" disabled selected>Choose a tag</option>
+                                    <option class="select" value="none">None</option>
+                                    {% for tag in tags_list %}
+                                      <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="amount" value="{{ record.amount|usd }}" class="form-control">
+                            </td>
+                            <td>
+                                <input type="text" name="root" value="{{ record.root }}" class="form-control">
+                            </td>
+                            <td>
+                                <input type="text" name="description" value="{{ record.description }}" class="form-control">
+                            </td>
+                            <td>
+                                <input type="text" name="timestamp" value="{{ record.timestamp|timestamp_editor }}" class="form-control">
+                            </td>
+                            <td>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                                <button type="button" class="btn historyButtons cancel-edit">Cancel</button>
+                                <button type="button" class="btn historyButtons delete-transaction" >Delete</button>
+                            </td>
+                        </form>
+                    </tr>
+                 
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="text-start center" colspan="6"><a href="{{ url_for(category + '_history') }}">See more records here</a></td>  
+                </tr>
+            </tfoot>
+        </table>
+        {% endif %}
+        {% endfor %}
+
+        {% if not has_records %}
+            <!-- Display message if no records are found -->
+            <p class="text-center">No records found</p>
+        {% endif %}
+    </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const rows = document.querySelectorAll('.record-row');
+
+            rows.forEach(row => {
+                const editButton = row.querySelector('.edit-button');
+                const cancelButton = row.nextElementSibling?.querySelector('.cancel-edit'); // Select cancel button in the next row
+                const deleteButton = row.nextElementSibling?.querySelector('.delete-transaction');
+                const editFormRow = row.nextElementSibling; // The edit form row
+                const form = row.nextElementSibling?.querySelector('form');
+
+                // Toggle edit mode on double click or when edit button is clicked
+                row.addEventListener('dblclick', function() {
+                    toggleEdit(row, true);
+                });
+
+                if (editButton) {
+                    editButton.addEventListener('click', function() {
+                        toggleEdit(row, true);
+                    });
+                }
+
+                if (cancelButton) {
+                    cancelButton.addEventListener('click', function() {
+                        toggleEdit(row, false);
+                    });
+                }
+
+                if (deleteButton) {
+                    deleteButton.addEventListener('click', function() {
+                        if (form) {
+                            const deleteBoolean = form.querySelector('input[name="deleteBoolean"]');
+                            if (deleteBoolean) {
+                                deleteBoolean.value = 'true';
+                                toggleEdit(row, false);
+                            }
+                            // Submit the form
+                            form.submit();
+                        }
+                    });
+                }
+            });
+
+            function toggleEdit(row, isEditing) {
+                const cells = row.querySelectorAll('td');
+                const editFormRow = row.nextElementSibling; // The edit form row
+
+                // Hide/show cells in the data row and show/hide the edit form row
+                cells.forEach(cell => {
+                    cell.style.display = isEditing ? 'none' : '';
+                });
+
+                if (editFormRow) {
+                    editFormRow.style.display = isEditing ? 'table-row' : 'none';
+                }
+            }
+        });
+
+    </script>
+
+    {% endblock %}

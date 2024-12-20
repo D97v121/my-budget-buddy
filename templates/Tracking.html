@@ -1,0 +1,237 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<main>
+  <section class = "categories">
+        <div class="dropdown indCategories">
+          <button class="button" id="Save" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="title">Save</div> 
+            <div class="totalMoney">{{ save }}</div>
+            <div class="percent">(40%)</div>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="Save">
+            <li><a target ="new" class="dropdown-item" href= "{{ url_for('save_history') }}">Saving History</a></li>
+            <li><a class="dropdown-item" href="Accounts.html">Saving Accounts</a></li>
+            <li><a class="dropdown-item" href="#">Saving Stats</a></li>
+          </ul>
+        </div><br>
+
+        <div class="dropdown indCategories">
+          <button class="button" id="Spend" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="title">Spend</div> 
+            <div class="totalMoney">{{ spend }}</div>
+            <div class="percent">(25%)</div>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="Spend">
+            <li><a target ="new" class="dropdown-item" href= "{{ url_for('spend_history') }}">Spendng History</a></li>
+            <li><a class="dropdown-item" href="Accounts.html">Spending Accounts</a></li>
+            <li><a class="dropdown-item" href="#">Spending Stats</a></li>
+          </ul>
+        </div><br>
+
+        <div class="dropdown indCategories">
+          <button class="button" id="Give" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="title">Give</div> 
+            <div class="totalMoney">{{ give }}</div>
+            <div class="percent">(25%)</div>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="Give">
+            <li><a target ="new" class="dropdown-item" href= "{{ url_for('give_history') }}">Giving History</a></li>
+            <li><a class="dropdown-item" href="Accounts.html">Giving Accounts</a></li>
+            <li><a class="dropdown-item" href="#">Giving Stats</a></li>
+          </ul>
+        </div><br>
+        
+        <div class="dropdown indCategories">
+          <button class="button" id="Invest" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="title">Invest</div> 
+            <div class="totalMoney">{{ invest }}</div>
+            <div class="percent">(25%)</div>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="Invest">
+            <li><a target ="new" class="dropdown-item" href= "{{ url_for('invest_history') }}">Investment Tracker</a></li>
+            <li><a class="dropdown-item" href="Accounts.html">Investing Accounts</a></li>
+            <li><a class="dropdown-item" href="#">Investing Stats</a></li>
+          </ul>
+        </div><br>
+
+        <div class="dropdown indCategories">
+          <button class="button" id="Expense" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="title">Expenses</div> 
+            <div class="totalMoney">{{ expense }}</div>
+            <div class="percent">(0%)</div>
+          </button>
+          <ul class="dropdown-menu" aria-labelledby="Expense">
+            <li><a target ="new" class="dropdown-item" href= "{{ url_for('expense_history') }}">Expense History</a></li>
+            <li><a class="dropdown-item" href="Accounts.html">Expense Accounts</a></li>
+            <li><a class="dropdown-item" href="#">Expense Stats</a></li>
+          </ul>
+        </div><br>
+  </section>
+<!-- Main Content -->
+<div class="graphs">
+  <canvas class = "graphChartSave" id="graphChartSave0"></canvas>
+  <canvas id="graphChartSave1" class = "graphChartSave"></canvas>
+  <canvas id="graphChartSave2" class = "graphChartSave"></canvas>
+  <canvas id="graphChartSave3" class = "graphChartSave"></canvas>
+  <canvas id="graphChartSave4" class = "graphChartSave"></canvas>
+</div>
+</main>
+<script>
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var save_data = JSON.parse('{{save_data | tojson | safe}}');
+    var save_dates = JSON.parse('{{save_dates | tojson | safe }}');
+    const labelsC = save_dates;
+    const dataC = {
+      labels: labelsC,
+       datasets: [{
+        label: 'Saving',
+        data: save_data,
+        fill: false,
+        borderColor: 'grey',
+        borderWidth: 3,
+        tension: 0.1
+      }]
+    };
+
+// Configuration for the line chart
+const configC = {
+  type: 'line',
+  data: dataC,
+};
+
+// Get the canvas context
+const ctxC = document.getElementById('graphChartSave0').getContext('2d');
+
+// Create the chart instance
+const graphChartSave = new Chart(ctxC, configC);
+});
+document.addEventListener('DOMContentLoaded', function () {
+  var spend_data = JSON.parse('{{spend_data | tojson | safe}}');
+  var spend_dates = JSON.parse('{{spend_dates | tojson | safe}}');
+    const labelsC = spend_dates;
+    const dataC = {
+      labels: labelsC,
+       datasets: [{
+        label: 'Spending',
+        data: spend_data,
+        fill: false,
+        borderColor: 'grey',
+        borderWidth: 3,
+        tension: 0.1
+      }]
+    };
+
+// Configuration for the line chart
+const configC = {
+  type: 'line',
+  data: dataC,
+};
+
+// Get the canvas context
+const ctxC = document.getElementById('graphChartSave1').getContext('2d');
+
+// Create the chart instance
+const graphChartSave = new Chart(ctxC, configC);
+});
+document.addEventListener('DOMContentLoaded', function () {
+  var give_data = JSON.parse('{{give_data | tojson | safe}}');
+    var give_dates = JSON.parse('{{give_dates | tojson | safe}}');
+    const labelsC = give_dates;
+    const dataC = {
+      labels: labelsC,
+       datasets: [{
+        label: 'Giving',
+        data: give_data,
+        fill: false,
+        borderColor: 'grey',
+        borderWidth: 3,
+        tension: 0.1
+      }]
+    };
+
+// Configuration for the line chart
+const configC = {
+  type: 'line',
+  data: dataC,
+};
+
+// Get the canvas context
+const ctxC = document.getElementById('graphChartSave2').getContext('2d');
+
+// Create the chart instance
+const graphChartSave = new Chart(ctxC, configC);
+});
+document.addEventListener('DOMContentLoaded', function () {
+    var invest_data = JSON.parse('{{invest_data | tojson | safe}}');
+    var invest_dates = JSON.parse('{{invest_dates | tojson | safe}}');
+    const labelsC = invest_dates;
+    const dataC = {
+      labels: labelsC,
+      datasets: [{
+        label: 'Investing',
+        data: invest_data,
+        fill: false,
+        borderColor: 'grey',
+        borderWidth: 3,
+        tension: 0.1
+      }]
+    };
+
+// Configuration for the line chart
+const configC = {
+  type: 'line',
+  data: dataC,
+};
+
+// Get the canvas context
+const ctxC = document.getElementById('graphChartSave3').getContext('2d');
+
+// Create the chart instance
+const graphChartSave = new Chart(ctxC, configC);
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+  var expense_data = JSON.parse('{{expense_data | tojson | safe}}');
+    var expense_dates = JSON.parse('{{expense_dates | tojson | safe}}');
+    const labelsC = expense_dates;
+    const dataC = {
+      labels: labelsC,
+       datasets: [{
+        label: 'Expenses',
+        data: expense_data,
+        fill: false,
+        borderColor: 'grey',
+        borderWidth: 3,
+        tension: 0.1
+      }]
+    };
+
+// Configuration for the line chart
+const configC = {
+  type: 'line',
+  data: dataC,
+};
+
+// Get the canvas context
+const ctxC = document.getElementById('graphChartSave4').getContext('2d');
+
+// Create the chart instance
+const graphChartSave = new Chart(ctxC, configC);
+});
+
+</script>
+</main>
+
+<script>
+let submit = document.querySelector('#submit');
+let recordTransaction = document.querySelector('#recordTransaction')
+document.querySelector('#submit').addEventListener('submit', function() {
+event.preventDefault();
+recordTransaction.value = '';
+});
+</script>
+        
+{% endblock %}
+      

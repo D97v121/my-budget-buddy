@@ -1,0 +1,112 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<!-- Main Content -->
+<nav class="navbar navbar-settings">
+    <div class="container-fluid d-flex flex-column align-items-start justify-content-center" >
+        <div class="navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav navbar-nav-settings flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active my-nav-bar" aria-current="page" href="{{ url_for('index') }}">General</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('goals') }}">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('account') }}">Account</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('tags') }}">Tags</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<main>
+    <div class="container">
+        <h2 class = "mt-5" style="font-size: 50px;">Change password
+            <form id="changePassword" method="POST" action="/change_password" class="needs-validation" novalidate></form>
+                <div class="form-group password-wrapper">
+                    <input required class="form-control main-item" name="old_password" placeholder="Old Password" id="old_password" type="password">
+                    <i class="fa fa-eye toggle-password" data-target="old_password" onclick="togglePasswordVisibility(this)"></i>
+                    <div class="invalid-feedback">
+                        Incorrect password
+                    </div>
+                </div>
+                <div class="form-group password-wrapper">
+                    <input required class="form-control main-item" name="new_password" placeholder="New Password" id="new_password" type="password">
+                    <i class="fa fa-eye toggle-password" data-target="new_password" onclick="togglePasswordVisibility(this)"></i>
+                    <div class="invalid-feedback">
+                        Must provide password
+                    </div>
+                </div>
+                <div class="form-group password-wrapper">
+                    <input required class="form-control main-item" name="confirmation" placeholder="Confirm New Password"  id="confirm_password" type="password">
+                    <i class="fa fa-eye toggle-password" data-target="confirm_password" onclick="togglePasswordVisibility(this)"></i>
+                    <div class="invalid-feedback">
+                        Passwords must match
+                    </div>
+                </div>
+                <button class="btn btn-primary main-item" type="submit">Submit</button>
+            </form>
+        </h2>
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('changePassword');
+        const storedOldPassword = 'stored_password_hash';
+
+        form.addEventListener('submit', function (event) {
+            const oldPasswordInput = form.querySelector('input[name="old_password"]');
+            const newPassword = form.querySelector('input[name="new_password"]');
+            const confirmation = form.querySelector('input[name="confirmation"]');
+            const invalidFeedback = oldPasswordInput.nextElementSibling.nextElementSibling;
+            
+            if (oldPasswordInput.value !== storedOldPassword) {
+                invalidFeedback.textContent = "Incorrect password";
+                oldPasswordInput.classList.add('is-invalid');
+                event.preventDefault();
+                return;
+            } else {
+                oldPasswordInput.classList.remove('is-invalid');
+            }
+
+            if (password.value !== confirmation.value) {
+                confirmation.setCustomValidity("Passwords must match");
+            } else {
+                confirmation.setCustomValidity("");
+            }
+
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const togglePasswordIcons = document.querySelectorAll('.toggle-password');
+                togglePasswordIcons.forEach(icon => icon.classList.add('shift-left'));
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+
+    function togglePasswordVisibility(icon) {
+            const targetId = icon.getAttribute('data-target');
+            const passwordInput = document.getElementById(targetId);
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+</script>
+    <!-- Main Content -->
+
+{% endblock %}

@@ -1,0 +1,179 @@
+Get transaction
+IF label = allMoney split into percentages then {
+  IF label = save spend to save
+  "" with 3 others
+}
+
+send numbers to SQLite
+
+moneyTable = Money.query.first()
+    save = moneyTable.save if moneyTable else 0
+    spend = moneyTable.spend if moneyTable else 0
+    give = moneyTable.give if moneyTable else 0
+    invest = moneyTable.invest if moneyTable else 0
+
+
+values arent adding to moneyTable properly
+
+
+tracking isn't working
+
+
+def graph_records(LabelModel):
+    amounts_query = LabelModel.query.with_entities(LabelModel.amount, LabelModel.timestamp).order_by(LabelModel.timestamp).all()
+
+    def process_data(granularity):
+        data = []
+        unique_dates = set()
+        cumulative = 0
+        previous_date = None
+
+        for amount, timestamp in amounts_query:
+            date_str = timestamp.strftime(granularity)
+            unique_dates.add(date_str)
+
+            if previous_date is not None and date_str != previous_date:
+                data.append({
+                    'date': previous_date,
+                    'cumulative_amount': cumulative
+                })
+
+            cumulative += amount
+            previous_date = date_str
+
+        if previous_date is not None:
+            data.append({
+                'date': previous_date,
+                'cumulative_amount': cumulative
+            })
+
+        return data, unique_dates
+
+    # Step 1: Check unique dates by day
+    granularity = '%Y-%m-%d %H:%M:%S'
+    data, unique_dates = process_data(granularity)
+
+    return cumulative_float
+
+
+
+<button id="createTagButton" class="open-button">Create Tag</button>
+    <!-- Trigger button for the popup -->
+    <div class="popup" id="tagPopup">
+        <table>
+            <tbody class="popup-content" id="create_tag">
+                <span class="close" id="closePopup">&times;</span>
+                {% for tag in tags %}
+                <tr>
+                    <option class="select" value="{{ tag.name }}"></option>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+
+
+table 
+ row with color, tag, active or not boolean checkbox
+     
+
+
+document.addEventListener('DOMContentLoaded', (event) => {
+        const addTag = document.getElementById('addTag');
+
+        addTag.addEventListener('click', () => {
+                alert('Button was clicked!');
+            });
+        });
+
+        document.addEventListener('click', function(event) {
+            form.submit();
+        });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        const editButton = row.querySelector('.edit-button');
+        const cancelButton = row.nextElementSibling?.querySelector('.cancel-edit'); // Select cancel button in the next row
+        const deleteTag = document.getElementById('deleteTag');
+        const editFormRow = row.nextElementSibling; // The edit form row
+        const form = row.nextElementSibling?.querySelector('form');
+
+        // Toggle edit mode on double click or when edit button is clicked
+        row.addEventListener('dblclick', function() {
+            toggleEdit(row, true);
+        });
+
+        if (editButton) {
+            editButton.addEventListener('click', function() {
+                toggleEdit(row, true);
+            });
+        }
+
+        if (cancelButton) {
+            cancelButton.addEventListener('click', function() {
+                toggleEdit(row, false);
+            });
+        }
+
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function() {
+                if (form) {
+                    const deleteBoolean = form.querySelector('input[name="deleteBoolean"]');
+                    if (deleteBoolean) {
+                        deleteBoolean.value = 'true';
+                        toggleEdit(row, false);
+                    }
+                    // Submit the form
+                    form.submit();
+                }
+            });
+        }
+    });
+
+    function toggleEdit(row, isEditing) {
+        const cells = row.querySelectorAll('td');
+        const editFormRow = row.nextElementSibling; // The edit form row
+
+        // Hide/show cells in the data row and show/hide the edit form row
+        cells.forEach(cell => {
+            cell.style.display = isEditing ? 'none' : '';
+        });
+
+        if (editFormRow) {
+            editFormRow.style.display = isEditing ? 'table-row' : 'none';
+        }
+    }
+    
+
+    color_id = db.Column(db.Integer, db.ForeignKey('tag_color.id'), nullable=False)
+
+    <span class="color-circle" style="background-color: '{{ color.color_hex }}';"></span>{{ color.color_name }}
+
+    {% if color.color_hex  %} selected {% endif %}>
+                                        <span class="color-circle" style="background-color: '{{ color.color_hex }}';"></span>{{ color.color_name }}
+
+
+     <select required  id="color_{{ tag.id }}" class="form-control form-select">
+        {% for color in tag_colors %}
+        <option class="select" value="{{ color.color_hex }}" data-color-name="{{ color.color_name }}" {% if color.color_hex == tag.color_id %}selected{% endif %}>
+            {{ color.color_name }}
+        </option>
+    {% endfor %}
+    </select>
+                       
+    
+    dictinary with tag name and count 
+    record expense tags:
+        if an expense tag name has already been recorded, add one to the count of that tag
+        render the tags color and tag count
+
+        expense_tags=[]
+    for record in expense_records:
+        expense_tags.append({
+            "tag": record.tag
+        })
+
+
+

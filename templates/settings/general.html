@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<!-- Main Content -->
+<nav class="navbar navbar-settings">
+    <div class="container-fluid d-flex flex-column align-items-start justify-content-center" >
+        <div class="navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav navbar-nav-settings flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active my-nav-bar" aria-current="page" href="{{ url_for('index') }}">General</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('goals') }}">Profile</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('account') }}">Account</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('tags') }}">Tags</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+    <!-- Main Content -->
+
+{% endblock %}

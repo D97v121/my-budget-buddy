@@ -1,0 +1,123 @@
+{% extends "layout.html" %}
+
+{% block body %}
+
+<nav class="navbar navbar-settings">
+    <div class="container-fluid d-flex flex-column align-items-start justify-content-center" >
+        <div class="navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav navbar-nav-settings flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active my-nav-bar" aria-current="page" href="{{ url_for('index') }}">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('goals') }}">Goals</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('tracking') }}">Tracking</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('settings_general') }}">Settings</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('tags') }}">Tags</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link my-nav-bar" href="{{ url_for('notes') }}">Notes</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <form id="tagForm" action="/settings/tags" method="post">
+        <table id="tagTable" class="table table-bordered table-striped">
+            {% for tag in tags %}
+                <tr>
+                    <td>    
+                        <input type="hidden" name="tag_id_{{ tag.id }}" value="{{ tag.id }}">
+                        <div>
+                            <input type="checkbox" id="select_{{ tag.id }}" name="select_{{ tag.id }}" class="checkbox">
+                            <input class="color-circle" name="color_{{ tag.id }}" id="colorCircle_{{ tag.id }}" type="color" value="{{ tag.color_id }}"></input>
+                            <input type="text" id="tagName_{{ tag.id }}" name="tagName_{{ tag.id }}" placeholder="Tag Name" value="{{ tag.name }}" required>
+                            
+                            <label for="tagStatus_{{ tag.id }}">Active:</label>
+                            <input class="checkbox" type="checkbox" id="tagStatus_{{ tag.id }}" name="tagStatus_{{ tag.id }}" {% if tag.status %}checked{% endif %}>
+                        
+                        </div>
+                        <input type="hidden" id="tagColor_{{ tag.id }}" name="tagColor_{{ tag.id }}" placeholder="Tag Color" value="{{ tag.color_id }}">   
+                    </td>
+                </tr>
+            {% endfor %}     
+        </table>
+        <div id="tagButtons">
+            <button type="submit" class="btn" id="updateTag">Update</button>
+            <button class="btn" id="deleteTag"> - </button>
+            <button class="btn" id="addTag">+</button>
+        </div>
+    </form>
+</div>
+
+
+
+<script>
+    function settagColor(tagId, currentColor) {
+            document.getElementById('tag_id').value = tagId;
+            document.getElementById('color').value = currentColor;
+        }
+
+    document.getElementById('deleteTag').addEventListener('click', function(event) {
+    event.preventDefault();
+    const deleteForm = document.createElement('form');
+    deleteForm.method = 'post';
+    deleteForm.action = '/delete_tags';
+
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="select_"]:checked');
+    checkboxes.forEach(checkbox => {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = checkbox.name;
+        hiddenInput.value = 'on';
+        deleteForm.appendChild(hiddenInput);
+    });
+
+    document.body.appendChild(deleteForm);
+    deleteForm.submit();
+    });
+
+    document.getElementById('addTag').addEventListener('click', function(event) {
+        event.preventDefault();
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td>    
+                <form id="newTagForm" action="/add_tag" method="post">
+                    <div>
+                        <input type="hidden" name="new_tag_id" >
+                        <input type="checkbox" id="select_new" name="select_new" class="checkbox">
+                        <input class="color-circle" name="color_new" id="tagColor_new" type="color" value="#0000FF" required>
+                        <input type="text" id="tagName_new" name="tagName_new" placeholder="Tag Name" required>
+                        <label for="tagStatus_new">Active:</label>
+                        <input type="checkbox" id="tagStatus_new" name="tagStatus_new" class="checkbox" checked>
+                        <button type="submit" class="btn" id="add_new_tag">Add</button>
+                    </div>
+                </form>
+            </td>
+        `;
+        document.getElementById('tagTable').appendChild(newRow);
+
+        newRow.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            this.submit();
+        });
+
+        
+    });
+    
+</script>
+
+{% endblock %}
+
+
+
+
+

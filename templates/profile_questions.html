@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Finance Tracker</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
+  <div class="container-fluid">
+    <a target="_blank" class="navbar-brand" href="https://davywilliams.w3spaces.com/index.html">
+      <i class="fas fa-scale-unbalanced-flip icon"></i>
+    </a>
+    <!-- fix alignment somehow -->
+    <div class="login-nav" id="navbarNav" >
+        <a class="nav-link active my-nav-bar" aria-current="page" href="{{ url_for('login') }}">Login</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<body>
+    <div class="container">
+        <form id="profile_questions_form" method="POST" action="/profile_questions" class="needs-validation" novalidate>
+            <div class = "mt-5">Enter your starting balance for your savings:</div>
+            <input type="number" class="form-control main-item" id="starting_save_balance" name="starting_save_balance" required>
+            <div class = "mt-5">What percentage of you income would you like to go in your savings?</div>
+            <input type="number" class="form-control main-item" id="save_income_percentage" name="save_income_percentage" required>
+
+            <div class = "mt-5">Enter your starting balance for your spending:</div>
+            <input type="number" class="form-control main-item" id="starting_spend_balance" name="starting_spend_balance" required>
+            <div class = "mt-5">What percentage of you income would you like to go in your spending?</div>
+            <input type="number" class="form-control main-item" id="spend_income_percentage" name="spend_income_percentage" required>
+
+            <div class = "mt-5">Enter your starting balance for your giving:</div>
+            <input type="number" class="form-control main-item" id="starting_give_balance" name="starting_give_balance" required>
+            <div class = "mt-5">What percentage of you income would you like to go in your giving?</div>
+            <input type="number" class="form-control main-item" id="give_income_percentage" name="give_income_percentage" required>
+
+            <div class = "mt-5">Enter your starting balance for your giving:</div>
+            <input type="number" class="form-control main-item" id="starting_invest_balance" name="starting_invest_balance" required>
+            <div class = "mt-5">What percentage of you income would you like to go in your investments?</div>
+            <input type="number" class="form-control main-item" id="invest_income_percentage" name="invest_income_percentage" required>
+
+            <div class = "mt-5">Enter your starting balance for your expenses:</div>
+            <input type="number" class="form-control main-item" id="starting_expense_balance" name="starting_expense_balance" required>
+            <div class = "mt-5">What percentage of you income would you like to go in your expenses?</div>
+            <input type="number" class="form-control main-item" id="expense_income_percentage" name="expense_income_percentage" required>
+            
+            <div id="errorMessage" class="alert mt-3" style="display:none; max-height: 100px;"></div>
+            <button class="btn btn-primary main-item" type="submit">Submit</button>
+        </form>
+    </div>
+</body>
+
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/scripts.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+    
+
+<script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('profile_questions_form');
+        const errorMessage = document.getElementById('errorMessage');
+        const maxLength = 10;
+
+        const inputs = document.querySelectorAll('input[type="number"]');
+
+        inputs.forEach(input => {
+            input.addEventListener('input', function (event) {
+                const value = event.target.value;
+                const maxDecimals = 2; // Set the number of allowed decimal places
+                
+
+                // Regular expression to match the pattern with max decimals
+                const regex = new RegExp(`^\\d*\\.?\\d{0,${maxDecimals}}$`);
+
+                if (!regex.test(value)) {
+                    // Remove invalid input
+                    event.target.value = value.slice(0, -1);
+                }
+            });
+        });
+
+        form.addEventListener('submit', function (event) {
+            const inputs = form.querySelectorAll('input[required]');
+            let valid = true;
+            let totalPercentage = 0;
+
+            // Check if all required fields are filled out
+            inputs.forEach(input => {
+                if (!input.value.trim()) {
+                    valid = false;
+                    input.classList.add('is-invalid');
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            // Calculate total percentage
+            totalPercentage += parseFloat(form.querySelector('#save_income_percentage').value) || 0;
+            totalPercentage += parseFloat(form.querySelector('#spend_income_percentage').value) || 0;
+            totalPercentage += parseFloat(form.querySelector('#give_income_percentage').value) || 0;
+            totalPercentage += parseFloat(form.querySelector('#invest_income_percentage').value) || 0;
+            totalPercentage += parseFloat(form.querySelector('#expense_income_percentage').value) || 0;
+
+            // Check if percentages add up to 100
+            if (totalPercentage !== 100) {
+                valid = false;
+                errorMessage.textContent = "The percentages must add up to 100%.";
+                errorMessage.style.display = 'block';
+            } else {
+                errorMessage.style.display = 'none';
+            }
+
+            if (!valid) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+            form.classList.add('was-validated');
+        });
+    });
+
+</script>    
+
+</body>
+</html>
+    

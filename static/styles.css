@@ -1,0 +1,478 @@
+/* 
+  Personal Finance Tracker Stylesheet
+  Author: Your Name
+  Date: June 21, 2024
+  Description: This file contains the main styles for the Personal Finance Tracker website.
+  Version: 1.0
+*/
+
+.my-nav-bar {
+    color: #2f4f4f;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: larger;
+}
+
+.my-nav-bar:hover {
+    color: black;
+}
+
+.stats-container {
+    display: flex;
+    justify-content: center;
+    max-height: 30%; 
+    background-color: rgba(240, 238, 238, 0.887); 
+    border: 1px solid #ccc; 
+    padding: 20px; 
+    margin: 0 auto; 
+    text-align: center;
+    flex: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.stat1 {
+    max-height: 60%;
+    max-width: 25%;
+    margin-left: 32px;
+    margin-right: 32px;
+}
+
+.stat2 {
+    max-height: 70%;
+    max-width: 30%;
+    margin-left: 32px;
+    margin-right: 32px;
+}
+  
+.circleLabel {
+    padding: 8%;
+    font-family: Academy Engraved LET;
+    font-size: xx-large;
+}
+
+.categories {
+    display: flex;
+    justify-content: center;
+    padding: 20px; 
+    margin: 0 auto; 
+    text-align: center;
+    flex: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    background-color: rgba(240, 229, 241, 0.887); 
+}
+
+.indCategories {
+    margin: 20px auto; 
+    text-align: center;
+    border-radius: 15px;
+}
+
+.history {
+    list-style-position: inside; 
+    padding-left: 35%;
+    text-align: left; 
+    background-color: white;
+}
+  
+  /* styling the actual buttons*/
+  .button {
+      background-color: rgb(255, 255, 255);
+      color: gray;
+      margin: 30px;
+      border: 20px;
+      border-radius: 50%;
+      text-decoration: none;
+      display: flex;
+      align-items: center; /* Center vertically */
+      justify-content: center; /* Center horizontally */
+      font-family: 'Academy Engraved LET', sans-serif !important; /* Ensure the font is applied */
+      box-sizing: border-box; /* Ensure padding and border are included in the element's total width and height */
+      text-align: center; /* Center the text horizontally */
+      padding: 0;
+      cursor: pointer;
+      padding: 60px;
+      font-weight: bold;
+      width: 200px;
+      height: 200px;
+      flex-wrap: wrap;
+  }
+
+  .button .totalMoney {
+    font-size: xx-large;
+    }
+.button .percent {
+    font-size: medium;
+}
+.button .title {
+    font-size: medium;
+}
+  
+  /* controlling hover color*/
+  .button:hover {
+    background-color: #c3c5c7;
+  }
+
+  .dropdown-menu {
+    border-color: gray;
+    border-width: 3px;
+    padding: 30px 10px;
+    margin-top: 15px !important;
+    margin-left: 15px !important;
+    text-align: center;
+    font-family: Academy Engraved LET !important;
+  }
+
+  .dropdown-item:active {
+    background-color: gray !important; /* Change color when active */
+}
+
+  .graphs {
+    display: flex;
+    justify-content: center;
+    padding: 20px; 
+    margin: 0 auto; 
+    text-align: center;
+    flex: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    background-color: rgb(255, 255, 255); 
+    box-sizing: border-box;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+
+  .graphChartSave {
+    max-width: auto;
+    max-height: auto;
+    background-color: rgba(240, 229, 241, 0.887);
+    border-radius: 3%;
+    padding: 30px;
+    margin: 50px;
+  }
+
+  .container {
+    display: flex;
+    justify-content: center;
+    font-family: Academy Engraved LET;
+    padding: 10px;
+  }
+
+  .btn {
+    margin: 10px;
+    background-color: lightgray;
+  }
+
+  .btn:hover {
+    background-color: darkgray;
+  }
+
+  #moneyToBeSorted {
+    display: flex;
+    max-width: 100%;
+    margin: 30px;
+    background-color: rgba(240, 238, 238, 0.887);
+  }
+
+  .tracker {
+    display: flex;
+    justify-content: center;
+    padding: 20px; 
+    margin: 0 auto; 
+    text-align: center;
+    flex: 1;
+    flex-direction: row;
+    flex-wrap: wrap;
+    background-color: rgba(240, 229, 241, 0.887); 
+  }
+
+ #category {
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+.form-control {
+  font-size: 20px !important;
+  display: inline-block;
+  padding-bottom: 0px;
+  margin-top: 10px;
+}
+
+.label {
+  display: inline-block; /* Ensure the label stays on the same line */
+  vertical-align: middle; /* Align label vertically with input */
+  margin-right: 5px;
+  font-size: 20px;
+  color: #333;
+  padding-bottom: 0;
+  margin-bottom: -20px;
+}
+
+.input-container {
+  display: flex; 
+  align-items: center; 
+  margin-left: -15px !important;
+}
+
+.select {
+  font-family: 'Academy Engraved LET';
+}
+
+.invalid-feedback {
+  font-family: Georgia, 'Times New Roman', Times, serif;
+  font-size: medium;
+  margin: 5px;
+}
+
+.main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+/*form sizes change when non-valid answers are submitted */
+
+.table {
+  max-width: 45%;
+  margin: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.center {
+  text-align: center !important;
+}
+
+.column_width {
+  max-width: 100px;
+}
+
+.mainHistory {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 5%;
+  flex-direction: column;
+}
+
+.main-item {
+  border-radius: 10px;
+}
+
+.login-nav {
+  justify-content: end;
+  margin-right: 30px;
+}
+
+.alert {
+  font-size: 20px;
+  color: red;
+  margin: 5px;
+  margin-bottom: -5px;
+  padding: 4px;
+}
+
+.mt-5 {
+  width: 400px;
+  text-align: center;
+}
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 16px;
+  transition: right 0.3s ease;
+}
+
+.toggle-password.shift-left {
+  right: 40px;
+  top: 30px;
+}
+
+.edit-form {
+  display: none;
+}
+
+.record-row.editing .edit-form {
+  display: table-cell;
+}
+
+.record-row.editing td:not(.edit-form) {
+  display: none;
+}
+
+.historyButtons {
+  font-size: 10px;
+  color: black;
+  padding: 2px;
+  margin-top: -10px;
+
+}
+
+#category {
+  margin-bottom: -15px;
+}
+
+.open-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 16px 20px;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+/* The popup form */
+.popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1;
+}
+
+/* The popup content */
+.popup-content {
+  background-color: white;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 300px;
+  border-radius: 5px;
+}
+
+/* Close button */
+.close {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+
+/*color options on tags page */
+.color-circle {
+  display: inline-block;
+  width: 15px; /* Adjust size as needed */
+  height: 15px; /* Adjust size as needed */ /* Remove default border */
+  border-radius: 50%; /* Makes the circle shape */
+  border-width: 0.75px;
+  padding: 0;
+  margin: 0px; /* Adjust margin as needed */
+  vertical-align: middle; /* Aligns the circle vertically with the text */
+  cursor: pointer; /* Pointer cursor for better UX */
+  -webkit-appearance: none; /* Remove default appearance */
+  appearance: none; /* Remove default appearance */
+}
+
+.color-circle::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-circle::-webkit-color-swatch {
+  border-width: 1px;
+  border-radius: 50%;
+}
+
+.color-circle::-moz-color-swatch {
+  border-width: 1px;
+  border-radius: 50%;
+}
+
+#tagTable {
+  max-width: 800px;
+}
+
+.checkbox {
+  vertical-align: middle;
+}
+
+#addTag, #deleteTag {
+  display: inline-flex;
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  margin-left: 5px;
+  font-size: 20px;
+  padding-top: 13px;
+  max-width: 25px;
+  max-height: 25px;
+}
+
+#updateTag {
+  margin-right: 130px;
+}
+
+#deleteTag {
+  font-weight: bold;
+}
+
+#tagButtons {
+  display: flex;
+  justify-content: center; /* Center the button group */
+}
+
+#tagButtons .btn {
+  margin-top: -10px;
+}
+
+#add_new_tag {
+  display: inline-flex;
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  font-size: 10px;
+  padding-top: 10px;
+  max-width: 10px;
+  max-height: 10px;
+}
+
+.navbar-settings {
+  position: absolute;
+  top: 33%; /* Position the top of the navbar at 33% of the page height */
+  transform: translateY(-50%); /* Center the navbar vertically at 33% */
+  height: auto; /* Ensure the height adapts to the content */
+  width: 150px; 
+  background-color: #F8F8F8;
+}
+
+#create_tag_link {
+  color: rgb(166, 209, 239) !important; /* primary color */
+  text-decoration: underline;
+  font-size: 15px;
+  margin-top: 10px;
+  margin-right: 325px;
+}
+
+#btn-link:hover, #btn-link:focus {
+  color: #5994ed; /* darken primary color */
+  text-decoration: underline;
+}
+
+#submit1 {
+  margin-left: 300px;
+  margin-top: -10px;
+}
+
+#submit2 {
+  margin-left: 300px;
+  margin-top: 20px;
+}
