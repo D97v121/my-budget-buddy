@@ -54,7 +54,7 @@ with app.app_context():
     print("Tables created successfully")
 
 if __name__ == '__main__':
-    app.run(port=4080, debug=True)
+    app.run(port=4080, debug=False)
 
 
 @app.route('/delete_data', methods=["GET", "POST"])
