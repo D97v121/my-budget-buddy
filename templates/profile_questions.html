@@ -1,53 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personal Finance Tracker</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
-  <link href="/static/styles.css" rel="stylesheet">
-</head>
-<body>
-<nav class="navbar navbar-expand-lg bg-body-tertiary">
-  <div class="container-fluid">
-    <a target="_blank" class="navbar-brand" href="https://davywilliams.w3spaces.com/index.html">
-      <i class="fas fa-scale-unbalanced-flip icon"></i>
-    </a>
-    <!-- fix alignment somehow -->
-    <div class="login-nav" id="navbarNav" >
-        <a class="nav-link active my-nav-bar" aria-current="page" href="{{ url_for('login') }}">Login</a>
-    </div>
-  </div>
-</nav>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Personal Finance Tracker</title>
+      <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+      <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+      <link href="/static/styles.css" rel="stylesheet">
+      <script src="https://kit.fontawesome.com/1033dab8a1.js" crossorigin="anonymous"></script>
+    </head>
+    <body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+      <div class="container-fluid">
+        <a target="_blank" class="navbar-brand" href="">
+            <i class="fa-solid fa-scale-unbalanced-flip"></i>
+        </a>
+        <div class="login-nav" id="navbarNav">
+            <a class="nav-link active my-nav-bar" aria-current="page" href="{{ url_for('register') }}">Register Here</a>
+        </div>
+      </div>
+    </nav>
+    
 
 <!-- Main Content -->
 <body>
-    <div class="container">
+    <div class="l-container">
         <form id="profile_questions_form" method="POST" action="/profile_questions" class="needs-validation" novalidate>
-            <div class = "mt-5">Enter your starting balance for your savings:</div>
+            <div class = "mt-5 fourh_width">Enter your starting balance for your savings:</div>
             <input type="number" class="form-control main-item" id="starting_save_balance" name="starting_save_balance" required>
-            <div class = "mt-5">What percentage of you income would you like to go in your savings?</div>
+            <div class = "mt-5 fourh_width">What percentage of you income would you like to go in your savings?</div>
             <input type="number" class="form-control main-item" id="save_income_percentage" name="save_income_percentage" required>
 
-            <div class = "mt-5">Enter your starting balance for your spending:</div>
+            <div class = "mt-5 fourh_width">Enter your starting balance for your spending:</div>
             <input type="number" class="form-control main-item" id="starting_spend_balance" name="starting_spend_balance" required>
-            <div class = "mt-5">What percentage of you income would you like to go in your spending?</div>
+            <div class = "mt-5 fourh_width">What percentage of you income would you like to go in your spending?</div>
             <input type="number" class="form-control main-item" id="spend_income_percentage" name="spend_income_percentage" required>
 
-            <div class = "mt-5">Enter your starting balance for your giving:</div>
+            <div class = "mt-5 fourh_width">Enter your starting balance for your giving:</div>
             <input type="number" class="form-control main-item" id="starting_give_balance" name="starting_give_balance" required>
-            <div class = "mt-5">What percentage of you income would you like to go in your giving?</div>
+            <div class = "mt-5 fourh_width">What percentage of you income would you like to go in your giving?</div>
             <input type="number" class="form-control main-item" id="give_income_percentage" name="give_income_percentage" required>
 
-            <div class = "mt-5">Enter your starting balance for your giving:</div>
+            <div class = "mt-5 fourh_width">Enter your starting balance for your giving:</div>
             <input type="number" class="form-control main-item" id="starting_invest_balance" name="starting_invest_balance" required>
-            <div class = "mt-5">What percentage of you income would you like to go in your investments?</div>
+            <div class = "mt-5 fourh_width">What percentage of you income would you like to go in your investments?</div>
             <input type="number" class="form-control main-item" id="invest_income_percentage" name="invest_income_percentage" required>
 
-            <div class = "mt-5">Enter your starting balance for your expenses:</div>
+            <div class = "mt-5 fourh_width">Enter your starting balance for your expenses:</div>
             <input type="number" class="form-control main-item" id="starting_expense_balance" name="starting_expense_balance" required>
-            <div class = "mt-5">What percentage of you income would you like to go in your expenses?</div>
+            <div class = "mt-5 fourh_width">What percentage of you income would you like to go in your expenses?</div>
             <input type="number" class="form-control main-item" id="expense_income_percentage" name="expense_income_percentage" required>
             
             <div id="errorMessage" class="alert mt-3" style="display:none; max-height: 100px;"></div>

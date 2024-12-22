@@ -24,57 +24,61 @@
     </div>
 </nav>
 <main>
-    <div class="container">
-        <h2 class = "mt-5" style="font-size: 50px;">Change password
-            <form id="changePassword" method="POST" action="/change_password" class="needs-validation" novalidate></form>
-                <div class="form-group password-wrapper">
-                    <input required class="form-control main-item" name="old_password" placeholder="Old Password" id="old_password" type="password">
-                    <i class="fa fa-eye toggle-password" data-target="old_password" onclick="togglePasswordVisibility(this)"></i>
-                    <div class="invalid-feedback">
-                        Incorrect password
-                    </div>
+    <div class="l-container">
+        <h2 class = "mt-5 fourh_width">Change Password
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div id="success_message" class="alert green">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% if error_message %}
+            <div id="error_message" class="alert hidden">{{ error_message }}</div>
+        {% endif %}
+        <div id="errorMessage" class="alert" style="display:none;"></div>
+        <form id="change_password" method="POST" action="/account" class="needs-validation" novalidate>
+            <input type="hidden" name="form_id" value="change_password">
+            <p type="hidden" name="form_id" value="{{ error_message }}"></p>
+            <div class="form-group">
+                <input type="text" class="form-control main-item" id="old_password" name="old_password" placeholder="Old Password" required>
+                <div class="invalid-feedback alert">
+                    Must provide old password
                 </div>
-                <div class="form-group password-wrapper">
-                    <input required class="form-control main-item" name="new_password" placeholder="New Password" id="new_password" type="password">
-                    <i class="fa fa-eye toggle-password" data-target="new_password" onclick="togglePasswordVisibility(this)"></i>
-                    <div class="invalid-feedback">
-                        Must provide password
-                    </div>
+            </div>
+            <div class="form-group password-wrapper">
+                <input required class="form-control main-item" name="new_password" placeholder="New Password" id="new_password" type="text">
+                <div class="invalid-feedback alert">
+                    Must provide password
                 </div>
-                <div class="form-group password-wrapper">
-                    <input required class="form-control main-item" name="confirmation" placeholder="Confirm New Password"  id="confirm_password" type="password">
-                    <i class="fa fa-eye toggle-password" data-target="confirm_password" onclick="togglePasswordVisibility(this)"></i>
-                    <div class="invalid-feedback">
-                        Passwords must match
-                    </div>
+            </div>
+            <div class="form-group password-wrapper">
+                <input required class="form-control main-item" name="confirmation" placeholder="Password"  id="confirm_password" type="text">
+                <div class="invalid-feedback alert">
+                    Passwords must match
                 </div>
-                <button class="btn btn-primary main-item" type="submit">Submit</button>
-            </form>
+            </div>
+            <button class="btn btn-primary main-item" type="submit">Submit</button>
+        </form>
         </h2>
     </div>
 </main>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('changePassword');
-        const storedOldPassword = 'stored_password_hash';
+        const successMessage = document.getElementById('success_message');
+        if (successMessage) {
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
 
+        const form = document.getElementById('change_password');
         form.addEventListener('submit', function (event) {
-            const oldPasswordInput = form.querySelector('input[name="old_password"]');
             const newPassword = form.querySelector('input[name="new_password"]');
             const confirmation = form.querySelector('input[name="confirmation"]');
-            const invalidFeedback = oldPasswordInput.nextElementSibling.nextElementSibling;
-            
-            if (oldPasswordInput.value !== storedOldPassword) {
-                invalidFeedback.textContent = "Incorrect password";
-                oldPasswordInput.classList.add('is-invalid');
-                event.preventDefault();
-                return;
-            } else {
-                oldPasswordInput.classList.remove('is-invalid');
-            }
 
-            if (password.value !== confirmation.value) {
+            if (newPassword.value !== confirmation.value) {
                 confirmation.setCustomValidity("Passwords must match");
             } else {
                 confirmation.setCustomValidity("");
@@ -83,30 +87,38 @@
             if (!form.checkValidity()) {
                 event.preventDefault();
                 event.stopPropagation();
-
-                const togglePasswordIcons = document.querySelectorAll('.toggle-password');
-                togglePasswordIcons.forEach(icon => icon.classList.add('shift-left'));
             }
 
             form.classList.add('was-validated');
         });
+
+        const errorMessage = "{{ error_message }}";
+        const errorMessageElement = document.getElementById('error_message');
+
+        if (errorMessage) {
+            errorMessageElement.classList.remove('hidden');
+        }
     });
 
     function togglePasswordVisibility(icon) {
-            const targetId = icon.getAttribute('data-target');
-            const passwordInput = document.getElementById(targetId);
+        const targetId = icon.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
 
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
         }
+    }
 </script>
+
+
+
+
     <!-- Main Content -->
 
 {% endblock %}

@@ -77,12 +77,11 @@
             </tfoot>
         </table>
         {% endif %}
-        {% endfor %}
-
-        {% if not has_records %}
+        {% if has_records == false %}
             <!-- Display message if no records are found -->
             <p class="text-center">No records found</p>
         {% endif %}
+        {% endfor %}
     </div>
     </main>
 

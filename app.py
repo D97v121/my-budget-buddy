@@ -7,7 +7,7 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from decimal import Decimal, InvalidOperation
 from helpers import apology, login_required, lookup, usd, calculateAllMoney, calculateCategory, dollar, graph_records, timestamp_editor, exit_usd, cycle_through_money_table, delete_record, initialize_money_record, populate_tags
-from models import db, Give, Spend, Save, Invest, Money, Expense, User, Tags, TagColor
+from models import db, Give, Spend, Save, Invest, Money, Expense, User, Tags, TagColor, Note
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime 
@@ -88,7 +88,6 @@ def delete_data():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     """Log user in"""
-
     # Forget any user_id
     session.clear()
     error_message = None
@@ -109,7 +108,6 @@ def login():
 
         # Remember which user has logged in
         session["user_id"] = user.id
-
             # Populate tags and tag colors for the new user
         
         # Redirect user to home page
@@ -316,6 +314,7 @@ def tracking():
     give_float, give_dates = graph_records(Give)
     invest_float, invest_dates = graph_records(Invest)
     expense_float, expense_dates = graph_records(Expense)
+
     return render_template('Tracking.html',
                        save_data=save_float, save_dates=save_dates,
                        spend_data=spend_float, spend_dates=spend_dates,
@@ -341,11 +340,6 @@ def history():
 
  
     return render_template("history.html", category_records=category_records, tags_list=tags_list)
-
-@app.route('/Notes', methods=["GET", "POST"])
-@login_required
-def notes():
-    return render_template('Notes.html')
 
 @app.route('/invest_history', methods=["GET", "POST"])
 @login_required
@@ -549,34 +543,85 @@ def add_tag():
 
     return redirect(url_for('tags'))
 
-@app.route('/change_password', methods=['POST'])
+@app.route("/account", methods=["GET", "POST"])
 @login_required
-def change_password():
-    if request.method == "POST":
-        user = User.query.get(current_user.id)
-        old_password = user.password_hash
-        old_password_input = request.form.get('old_password')
-        
-        if old_password != old_password_input:
-            error_message = "Incorrect password"
-        if error_message:
-            return render_template("account.html", error_message=error_message)
-        
-        else:
-            password = request.form.get('password')
-            password_hash = generate_password_hash(password, method='pbkdf2:sha256')
-            user.password_hash = password_hash
-            db.session.commit()
-        
-        return redirect("/")
-
-    else:
-        return render_template("account.html")
-
-@app.route('/account')
 def account():
-    return render_template('settings/account.html')
+    user_id = session.get("user_id")
+    user = User.query.filter_by(id=user_id).first()
+    error_message = None
+    if request.method == "POST":
+        form_id = request.form.get("form_id")
 
+        # Handle Change Password Form
+        if form_id == "change_password":
+            old_password_input = request.form.get("old_password")
+            new_password = request.form.get("new_password")
+            confirmation = request.form.get("confirmation")
+
+        # Ensure username exists and password is correct
+        if not check_password_hash(user.hash, old_password_input):
+            error_message = "Incorrect password"
+            return render_template("settings/account.html", error_message=error_message)
+        
+        if new_password != confirmation:
+            error_message = "Passwords must match"
+            return render_template("settings/account.html", error_message=error_message)
+        
+        user.hash = generate_password_hash(new_password, method="pbkdf2:sha256")
+        db.session.commit()
+        flash("Password has been changed successfully!", "success")
+        return redirect("account")
+        
+    else:
+        return render_template("settings/account.html")
+
+@app.route('/notes', methods=["GET", "POST"])
+@login_required
+def notes():
+    user_id = session.get("user_id")
+
+    # Handle form submission for adding a new note
+    if request.method == "POST":
+        content = request.form.get("content")
+        if content:
+            new_note = Note(user_id=user_id, content=content, timestamp=datetime.now())
+            db.session.add(new_note)
+            db.session.commit()
+            return redirect(url_for("notes"))
+
+    # Fetch all notes for the current user
+    user_notes = Note.query.filter_by(user_id=user_id).order_by(Note.timestamp.desc()).all()
+
+    return render_template('notes.html', notes=user_notes)
+
+@app.route('/add_note', methods=["POST"])
+@login_required
+def add_note():
+    content = request.form.get("content")
+    if content:
+        note = Note(user_id=session["user_id"], content=content, timestamp=datetime.now())
+        db.session.add(note)
+        db.session.commit()
+    return redirect(url_for("notes"))
+
+@app.route('/update_note/<int:note_id>', methods=["POST"])
+@login_required
+def update_note(note_id):
+    content = request.form.get("content")
+    note = Note.query.filter_by(id=note_id, user_id=session["user_id"]).first()
+    if note:
+        note.content = content
+        db.session.commit()
+    return redirect(url_for("notes"))
+
+@app.route('/delete_note/<int:note_id>', methods=["POST"])
+@login_required
+def delete_note(note_id):
+    note = Note.query.filter_by(id=note_id, user_id=session["user_id"]).first()
+    if note:
+        db.session.delete(note)
+        db.session.commit()
+    return redirect(url_for("notes"))
 
 
 @app.route('/verify')

@@ -296,13 +296,15 @@ def delete_record(db, record_id, LabelModel):
 
 def populate_tags(db, user_id):
     logging.debug(f"populating table")
-    new_tag_save = Tags(name='Save', color_id='#C5C5C9', status=True, user_id=user_id)
-    new_tag_spend = Tags(name='Spend', color_id='#FFD1DC', status=True, user_id=user_id)
-    new_tag_give = Tags(name='Give', color_id='#AEBCE5', status=True, user_id=user_id)
-    new_tag_invest = Tags(name='Invest', color_id='#F3B4F4', status=True, user_id=user_id)
-    new_tag_expense = Tags(name='Expense', color_id='#BBA2C8', status=True, user_id=user_id)
+    new_tag_save = Tags(name='Save', color_id='#506680', status=True, user_id=user_id)
+    new_tag_spend = Tags(name='Spend', color_id='#A1AAB3', status=True, user_id=user_id)
+    new_tag_give = Tags(name='Give', color_id='#2E3D4B', status=True, user_id=user_id)
+    new_tag_invest = Tags(name='Invest', color_id='#CBD7E3', status=True, user_id=user_id)
+    new_tag_expense = Tags(name='Expense', color_id='#395B75', status=True, user_id=user_id)
 
     tags_to_add = [new_tag_save, new_tag_spend, new_tag_give, new_tag_invest, new_tag_expense]
     db.session.add_all(tags_to_add)
     db.session.commit()
     logging.debug(f"Tags populated for user ID: {user_id}")
+
+

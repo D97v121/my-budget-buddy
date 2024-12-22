@@ -3,6 +3,17 @@
 {% block body %}
 
 <!-- Main Content -->
+<div class="parallax-section">
+  <div class="parallax-background">
+    <img src="static/scales_background.jpeg" alt="Company Logo" class="p_background_img" >
+  </div>
+  <div class="parallax-content">
+    <h1 class="hero-title">Track Your Finances</h1>
+    <p class="hero-subtitle">Simplify your money management with ease.</p>
+    <button class="hero-btn" onclick="scrollToMain()">Get Started</button>
+  </div>
+</div>
+
 <div class="stats-container">
   <div class="stat1">
     <canvas id="myChart" width="400" height="400"></canvas>
@@ -40,7 +51,6 @@
           </div>
           <div class="form-group">
             <div class="input-container">
-              <label class = "label">$</label>
               <input required name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transaction amount" onchange="correctDecimals(this)">
             </div>
             <div class="invalid-feedback">
@@ -97,7 +107,6 @@
           Please select a category.
         </div>
           <div class="input-container">
-            <label class = "label">$</label>
             <input required id="recordedTransaction" name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transfer amount" onchange="correctDecimals(this)">
             <div class="invalid-feedback weird-error">
               Please enter a valid amount.

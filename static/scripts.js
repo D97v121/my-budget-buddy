@@ -72,7 +72,6 @@ function correctDecimals(input) {
   }
 }
 
-
 tagNames = tagNames;
   colors = colors;
   counts = counts;
@@ -110,7 +109,7 @@ tagNames = tagNames;
 
 console.log(data); 
 
-//CATEGORIES CHARTS
-
-
-  
+function scrollToMain() {
+  const mainSection = document.querySelector('.main');
+  mainSection.scrollIntoView({ behavior: 'smooth' }); // Smooth scrolling to the .main container
+}
