@@ -7,7 +7,7 @@ from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from decimal import Decimal, InvalidOperation
 from helpers import apology, login_required, lookup, usd, calculateAllMoney, calculateCategory, dollar, graph_records, timestamp_editor, exit_usd, cycle_through_money_table, delete_record, initialize_money_record, populate_tags
-from models import db, Give, Spend, Save, Invest, Money, Expense, User, Tags, TagColor, Note
+from models import db, Give, Spend, Save, Invest, Money, Expense, User, Tags, TagColor, Note, Goal
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime 
@@ -288,12 +288,7 @@ def index():
     tag_names = [tag if tag else 'none' for tag in tag_details.keys()]
     
     return render_template("index.html", moneyTable=moneyTable, left_in_spend=left_in_spend, description=description, tags_list=tags_list, colors=colors, counts=counts, tag_names=tag_names, spending_color=spending_color)
-    
-@app.route('/Goals', methods=["GET", "POST"])
-def goals():
 
-
-    return render_template('Goals.html')
 
 @app.route('/Tracking', methods=["GET", "POST"])
 @login_required
@@ -623,6 +618,53 @@ def delete_note(note_id):
         db.session.commit()
     return redirect(url_for("notes"))
 
+@app.route('/goals', methods=["GET", "POST"])
+@login_required
+def goals():
+    user_id = session.get("user_id")
+
+    # Handle form submission for adding a new note
+    if request.method == "POST":
+        content = request.form.get("content")
+        if content:
+            new_goal = Note(user_id=user_id, content=content, timestamp=datetime.now())
+            db.session.add(new_goal)
+            db.session.commit()
+            return redirect(url_for("notes"))
+
+    # Fetch all notes for the current user
+    user_goals = Goal.query.filter_by(user_id=user_id).order_by(Goal.timestamp.desc()).all()
+
+    return render_template('goals.html', goals=user_goals)
+
+@app.route('/add_goal', methods=["POST"])
+@login_required
+def add_goal():
+    content = request.form.get("content")
+    if content:
+        goal = Goal(user_id=session["user_id"], content=content, timestamp=datetime.now())
+        db.session.add(goal)
+        db.session.commit()
+    return redirect(url_for("goals"))
+
+@app.route('/update_goal/<int:goal_id>', methods=["POST"])
+@login_required
+def update_goal(goal_id):
+    content = request.form.get("content")
+    goal = Goal.query.filter_by(id=goal_id, user_id=session["user_id"]).first()
+    if goal:
+        goal.content = content
+        db.session.commit()
+    return redirect(url_for("goals"))
+
+@app.route('/delete_goal/<int:goal_id>', methods=["POST"])
+@login_required
+def delete_goal(goal_id):
+    goal = Goal.query.filter_by(id=goal_id, user_id=session["user_id"]).first()
+    if goal:
+        db.session.delete(goal)
+        db.session.commit()
+    return redirect(url_for("goals"))
 
 @app.route('/verify')
 def verify():
