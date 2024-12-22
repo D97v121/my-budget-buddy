@@ -29,7 +29,7 @@
     </div>
 </nav>
 
-<div class="container">
+<div class="container" style="width:600px; padding-right:100px;">
     <form id="tagForm" action="/settings/tags" method="post">
         <table id="tagTable" class="table table-bordered table-striped">
             {% for tag in tags %}
@@ -50,7 +50,7 @@
                 </tr>
             {% endfor %}     
         </table>
-        <div id="tagButtons">
+        <div id="tagButtons" style="text-align: center;">
             <button type="submit" class="btn" id="updateTag">Update</button>
             <button class="btn" id="deleteTag"> - </button>
             <button class="btn" id="addTag">+</button>

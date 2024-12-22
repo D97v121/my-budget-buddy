@@ -1,32 +1,102 @@
 {% extends "layout.html" %}
 
 {% block body %}
+<main>
+    <div class="mainNotes">
+        <h2 class="text-center">My Notes</h2>
+        <table class="table table-group-divider table-bordered table-striped-columns">
+            <thead>
+                <tr>
+                    <th class="text-start">Date</th>
+                    <th class="text-start">Note</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if notes and notes|length > 0 %}
+                    {% for note in notes %}
+                    <tr class="note-row" data-note-id="{{ note.id }}">
+                        <td class="text-start column_width">{{ note.timestamp | timestamp_editor }}</td>
+                        <td class="text-start column_width">{{ note.content }}</td>
+                        <td class="text-end">
+                            <button class="btn btn-primary edit-note">Edit</button>
+                            <form method="POST" action="{{ url_for('delete_note', note_id=note.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr class="edit-form" style="display: none;">
+                        <td colspan="3">
+                            <form method="POST" action="{{ url_for('update_note', note_id=note.id) }}">
+                                <div class="input-container">
+                                    <textarea name="content" class="form-control" rows="2" required>{{ note.content }}</textarea>
+                                </div>
+                                <div class="text-end mt-2">
+                                    <button type="submit" class="btn btn-success">Save</button>
+                                    <button type="button" class="btn btn-secondary cancel-edit">Cancel</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center">No notes found</td>
+                </tr>
+                {% endif %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3">
+                        <form method="POST" action="{{ url_for('add_note') }}">
+                            <div class="input-container">
+                                <textarea name="content" class="form-control" rows="2" placeholder="Add a new note..." required></textarea>
+                            </div>
+                            <div class="text-end mt-2">
+                                <button type="submit" class="btn btn-primary">Add Note</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</main>
 
-<!-- Main Content -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const rows = document.querySelectorAll('.note-row');
 
-<table>
-    <thead>
-        <tr>
-            <th>Title</th>
-            <th>Note</th>
-            <th>Date</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody id="notesTable">
-        <tr class="edit-form">
-            <td>1</td>
-            <td>Meeting Notes</td>
-            <td>Discussed the new project timeline and goals.</td>
-            <td>2024-09-23</td>
-            <td>
-                <button>Edit</button>
-                <button>Delete</button>
-            </td>
-        </tr>
-        <!-- More rows can be added dynamically -->
-    </tbody>
-</table>
+        rows.forEach(row => {
+            const editButton = row.querySelector('.edit-note');
+            const cancelButton = row.nextElementSibling?.querySelector('.cancel-edit');
+            const editFormRow = row.nextElementSibling;
 
+            if (editButton) {
+                editButton.addEventListener('click', function () {
+                    toggleEdit(row, true);
+                });
+            }
 
+            if (cancelButton) {
+                cancelButton.addEventListener('click', function () {
+                    toggleEdit(row, false);
+                });
+            }
+        });
+
+        function toggleEdit(row, isEditing) {
+            const cells = row.querySelectorAll('td');
+            const editFormRow = row.nextElementSibling;
+
+            cells.forEach(cell => {
+                cell.style.display = isEditing ? 'none' : '';
+            });
+
+            if (editFormRow) {
+                editFormRow.style.display = isEditing ? 'table-row' : 'none';
+            }
+        }
+    });
+</script>
 {% endblock %}
