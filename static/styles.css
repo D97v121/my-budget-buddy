@@ -339,6 +339,12 @@ background-color: #16a085;
   color: green !important;
 }
 
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+
 .toggle-password {
   position: absolute;
   right: 10px;
