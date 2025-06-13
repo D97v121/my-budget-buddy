@@ -16,6 +16,7 @@ from collections import defaultdict
 from openai import OpenAI
 from flask_login import current_user
 import locale
+from plaid.api_client import ApiClient
 from dotenv import load_dotenv
 import plaid
 from plaid.api import plaid_api
@@ -24,6 +25,7 @@ from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.transactions_get_request_options import TransactionsGetRequestOptions
 from apscheduler.schedulers.background import BackgroundScheduler
 from plaid.model.transactions_get_request import TransactionsGetRequest
+from plaid.exceptions import ApiException
 # Read env vars from .env file
 import base64
 import os
@@ -150,7 +152,7 @@ configuration = Configuration(
     }
 )
 
-api_client = plaid.ApiClient(configuration)
+api_client = ApiClient(configuration)
 client = plaid_api.PlaidApi(api_client)
 
 products = []
@@ -1226,7 +1228,7 @@ def create_link_token_for_payment():
         linkResponse = client.link_token_create(linkRequest)
         pretty_print_response(linkResponse.to_dict())
         return jsonify(linkResponse.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         return json.loads(e.body)
 
 
@@ -1262,7 +1264,7 @@ def create_link_token():
     # create link token
         response = client.link_token_create(request)
         return jsonify(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         print(e)
         return json.loads(e.body)
 
@@ -1298,7 +1300,7 @@ def create_user_token():
         user_response = client.user_create(user_create_request)
         session['user_token'] = user_response['user_token']
         return jsonify(user_response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         print(e)
         return jsonify(json.loads(e.body)), e.status
 
@@ -1382,7 +1384,7 @@ def set_access_token():
             "institution_name": institution_name,
             "transactions": transactions_data
         })
-    except plaid.ApiException as e:
+    except ApiException as e:
         logging.error(f"Plaid API Error: {e}")
         return jsonify({"error": e.body}), e.status
     except Exception as e:
@@ -1403,7 +1405,7 @@ def get_auth():
        response = client.auth_get(request)
        pretty_print_response(response.to_dict())
        return jsonify(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1539,7 +1541,7 @@ def get_transactions():
                     all_modified.extend(response.get('modified', []))
                     all_removed.extend(response.get('removed', []))
                 
-                except plaid.ApiException as e:
+                except ApiException as e:
                     logging.error(f"Plaid API error: {e}")
                     raise
             db.session.commit()
@@ -1621,7 +1623,7 @@ def get_transactions():
             "recent_transactions": recent_transactions_list
         })
 
-    except plaid.ApiException as e:
+    except ApiException as e:
         logging.error(f"Plaid API Exception: {e}")
         error_response = format_error(e)
         return jsonify(error_response), 500
@@ -1652,7 +1654,7 @@ def get_identity():
         pretty_print_response(response.to_dict())
         return jsonify(
             {'error': None, 'identity': response.to_dict()['accounts']})
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1676,7 +1678,7 @@ def fetch_institution_name(access_token):
         )
         institution_response = client.institutions_get_by_id(institution_request)
         return institution_response['institution']['name']
-    except plaid.ApiException as e:
+    except ApiException as e:
         logging.error(f"Error fetching institution name: {e}")
         return "Unknown Bank"
 
@@ -1689,7 +1691,7 @@ def get_balance():
         response = client.accounts_balance_get(request)
         pretty_print_response(response.to_dict())
         return jsonify(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1704,7 +1706,7 @@ def get_accounts(access_token):
         request = AccountsGetRequest(access_token=access_token)
         response = client.accounts_get(request)  # This is a Response object
         return response.to_dict()  # Convert it to a dictionary
-    except plaid.ApiException as e:
+    except ApiException as e:
         logging.error(f"Plaid API error while fetching accounts: {e}")
         return None
 
@@ -1756,7 +1758,7 @@ def get_assets():
             'json': asset_report_json.to_dict(),
             'pdf': base64.b64encode(pdf.read()).decode('utf-8'),
         })
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1772,7 +1774,7 @@ def get_holdings():
         response = client.investments_holdings_get(request)
         pretty_print_response(response.to_dict())
         return jsonify({'error': None, 'holdings': response.to_dict()})
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1801,7 +1803,7 @@ def get_investments_transactions():
         return jsonify(
             {'error': None, 'investments_transactions': response.to_dict()})
 
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1839,7 +1841,7 @@ def transfer_authorization():
         pretty_print_response(response.to_dict())
         authorization_id = response['authorization']['id']
         return jsonify(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1856,7 +1858,7 @@ def transfer():
         response = client.transfer_create(request)
         pretty_print_response(response.to_dict())
         return jsonify(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1866,7 +1868,7 @@ def statements():
         request = StatementsListRequest(access_token=access_token)
         response = client.statements_list(request)
         pretty_print_response(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
     try:
@@ -1902,7 +1904,7 @@ def signal():
         response = client.signal_evaluate(request)
         pretty_print_response(response.to_dict())
         return jsonify(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1919,7 +1921,7 @@ def payment():
         response = client.payment_initiation_payment_get(request)
         pretty_print_response(response.to_dict())
         return jsonify({'error': None, 'payment': response.to_dict()})
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1942,7 +1944,7 @@ def item():
         pretty_print_response(institution_response.to_dict())
         return jsonify({'error': None, 'item': response.to_dict()[
             'item'], 'institution': institution_response.to_dict()['institution']})
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1964,7 +1966,7 @@ def cra_check_report():
             'report': get_response.to_dict()['report'],
             'pdf': base64.b64encode(pdf_response.read()).decode('utf-8')
         })
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -1987,7 +1989,7 @@ def cra_income_insights():
             'report': get_response.to_dict()['report'],
             'pdf': base64.b64encode(pdf_response.read()).decode('utf-8')
         })
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -2002,7 +2004,7 @@ def cra_partner_insights():
         pretty_print_response(response.to_dict())
 
         return jsonify(response.to_dict())
-    except plaid.ApiException as e:
+    except ApiException as e:
         error_response = format_error(e)
         return jsonify(error_response)
 
@@ -2015,7 +2017,7 @@ def poll_with_retries(request_callback, ms=1000, retries_left=20):
     while retries_left > 0:
         try:
             return request_callback()
-        except plaid.ApiException as e:
+        except ApiException as e:
             response = json.loads(e.body)
             if response['error_code'] != 'PRODUCT_NOT_READY':
                 raise e
