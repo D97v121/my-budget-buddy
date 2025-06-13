@@ -16,6 +16,7 @@ from openai import OpenAI
 from flask_login import current_user
 import locale
 from dotenv import load_dotenv
+from plaid import Configuration, Environment
 import plaid
 from plaid.api import plaid_api
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
@@ -125,10 +126,10 @@ def handle_webhook():
 
 
 if PLAID_ENV == 'sandbox':
-    host = plaid.Environment.Sandbox
+    host = Environment.Sandbox
 
 if PLAID_ENV == 'production':
-    host = plaid.Environment.Production
+    host = Environment.Production
 
 # Parameters used for the OAuth redirect Link flow.
 #
