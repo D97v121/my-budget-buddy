@@ -15,12 +15,13 @@
             <tbody>
                 {% if notes and notes|length > 0 %}
                     {% for note in notes %}
-                    <tr class="note-row" data-note-id="{{ note.id }}">
+                    <tr class="note-row" data-note-id="{{ note.id }}"></tr>
                         <td class="text-start column_width">{{ note.timestamp | timestamp_editor }}</td>
                         <td class="text-start column_width">{{ note.content }}</td>
                         <td class="text-end">
                             <button class="btn btn-primary edit-note">Edit</button>
                             <form method="POST" action="{{ url_for('delete_note', note_id=note.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
                                 <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                         </td>
@@ -28,6 +29,7 @@
                     <tr class="edit-form" style="display: none;">
                         <td colspan="3">
                             <form method="POST" action="{{ url_for('update_note', note_id=note.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
                                 <div class="input-container">
                                     <textarea name="content" class="form-control" rows="2" required>{{ note.content }}</textarea>
                                 </div>
@@ -49,6 +51,7 @@
                 <tr>
                     <td colspan="3">
                         <form method="POST" action="{{ url_for('add_note') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
                             <div class="input-container">
                                 <textarea name="content" class="form-control" rows="2" placeholder="Add a new note..." required></textarea>
                             </div>

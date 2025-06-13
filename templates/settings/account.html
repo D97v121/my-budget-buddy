@@ -38,6 +38,7 @@
         {% endif %}
         <div id="errorMessage" class="alert" style="display:none;"></div>
         <form id="change_password" method="POST" action="/account" class="needs-validation" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
             <input type="hidden" name="form_id" value="change_password">
             <p type="hidden" name="form_id" value="{{ error_message }}"></p>
             <div class="form-group">

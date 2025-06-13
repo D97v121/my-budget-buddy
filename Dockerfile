@@ -14,3 +14,4 @@ EXPOSE 8000
 
 # Run the app with Gunicorn
 CMD ["gunicorn", "-w", "3", "-b", "0.0.0.0:8000", "app:app"]
+

@@ -28,3 +28,17 @@ typing_extensions==4.12.2
 urllib3==2.2.2
 Werkzeug==3.0.3
 zipp==3.19.2
+Flask
+Flask-Session
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-Login
+cs50
+werkzeug
+python-dotenv
+plaid-python
+sqlalchemy
+datetime
+logging
+requests
+

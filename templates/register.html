@@ -30,7 +30,7 @@
             <div id="usernameError" class="alert hidden">{{ username_error }}</div>
         {% endif %}
         <div id="errorMessage" class="alert" style="display:none;"></div>
-        <form id="registerForm" method="POST" action="/register" class="needs-validation" novalidate>
+        <form id="registerForm" method="POST" action="/register" class="needs-validation" novalidate> 
             <p type="hidden" name="form_id" value="{{ username_error }}"></p>
             <div class="form-group">
                 <input type="text" class="form-control main-item" id="name" name="name" placeholder="First and Last Name" required>

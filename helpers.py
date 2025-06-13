@@ -7,16 +7,18 @@ import uuid
 import decimal
 import os
 import re
+import datetime as dt
 import json
 import logging
-from cs50 import SQL
 from flask_session import Session
 from flask_sqlalchemy import SQLAlchemy
 from decimal import Decimal
+from cryptography.fernet import Fernet
+import base64
 
 from flask import redirect, render_template, request, session
 from functools import wraps
-from models import Save, Give, Spend, Invest, Money, Expense, Tags, TagColor
+from models import Save, Give, Spend, Invest, Money, Expense, Tags, TagColor, Transaction
 
 model_map = {
     "save": Save,
@@ -25,6 +27,8 @@ model_map = {
     "invest": Invest,
     "expense": Expense
 }
+
+
 
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -123,6 +127,7 @@ def dollar(value):
         return usd(value)
 
 def timestamp_editor(value):
+    
     return value.strftime("%m/%d/%Y")
 
 def initialize_money_record(db):
@@ -130,15 +135,126 @@ def initialize_money_record(db):
     money_record = Money.query.filter_by(user_id=user_id).first()
     if money_record is None:
         logging.debug("No existing money record found. Creating a new one.")
-        money_record = Money(user_id=user_id, save=0, spend=0, give=0)
+        money_record = Money(user_id=user_id, save=0, spend=0, give=0, expense=0)
         db.session.add(money_record)
         db.session.commit()
     return money_record
 
+def calculate_totals_by_division(db, Transaction, user_id, division):
+    # Calculate the total amount for transactions with the specified division
+    total = (
+        Transaction.query.with_entities(db.func.sum(Transaction.amount))
+        .filter_by(user_id=user_id, division=division)
+        .scalar()
+    )
+    return total or 0
 
-def process_data(granularity, LabelModel):
+def cycle_through_money_table(db, money_record):
+    if money_record is None:
+        logging.error("money_record is None in cycle_through_money_table")
+        return
+
+    user_id = session.get("user_id")
+    if user_id is None:
+        logging.error("User ID is None. Cannot proceed.")
+        return
+
+    divisions = ["save", "spend", "give", "invest", "expense"]
+
+    for division in divisions:
+        logging.debug(f"Processing transactions for division: {division}")
+
+        # Calculate total amount for the division
+        total = calculate_totals_by_division(db, Transaction, user_id, division)
+
+        # Update the money record
+        setattr(money_record, division, total)
+        logging.debug(f"Updated {division} in money_record to {total}")
+
+    db.session.commit()
+    logging.debug("Money record updated successfully")
+
+
+def calculateCategory(db, Transaction, label, money, category, bank_name, tag_objects, division, date=dt.datetime.now()):
+    logging.debug(f"Calculating category: {label} with amount: {money} with date: {date}")
+    logging.debug(f"division: { division } ")
+    if not division:
+        division = "none"
+    user_id = session.get("user_id")
+    if user_id is None:
+        logging.error("User ID is None. Cannot proceed with calculation.")
+        return
+    
+    logging.debug(f"User ID: {user_id}")
+    try:  
+        logging.debug(f"No existing category record found, creating a new one")
+        if tag_objects:
+            unique_tags = list({tag.id: tag for tag in tag_objects}.values())  # Filter duplicates
+        else:
+            unique_tags = []
+        if date:
+            date=date
+        else:
+            date=dt.datetime.now()
+        if isinstance(date, str):
+            date = datetime.strptime(date, '%m/%d/%Y')
+        new_record = Transaction(user_id=user_id, amount=money, bank_name=bank_name, category=category, timestamp=dt.datetime.now(), date=date, division=division)
+        if unique_tags:
+            new_record.tags.extend(unique_tags)
+
+        # Assign unique tags to the transaction
+        db.session.add(new_record)
+        db.session.commit()
+        
+        money_record = initialize_money_record(db)
+        
+        logging.debug(f"Updating existing money record: { money_record }")
+
+        granularity = '%Y-%m-%d %H:%M:%S'
+        _, _, last_record = process_data(granularity, Transaction)
+     
+        setattr(money_record, division, last_record)
+        db.session.commit()
+
+        logging.debug("Transaction committed successfully")
+
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Transaction failed and rolled back: {e}")
+        raise
+
+#calculate where money goes and what percentage goes there
+def calculateAllMoney(db, Transaction, tag_objects, money, category, date, bank_name):
+    logging.debug("Calculating all money allocations")
+    
+    savePercentage = Decimal('0.5')
+    givePercentage = Decimal('0.2')
+    spendPercentage = Decimal('0.2')
+    investPercentage = Decimal('0.1')
+    expensePercentage = Decimal('0')
+
+    save_amount = money * float(savePercentage)
+    give_amount = money * float(givePercentage)
+    spend_amount = money * float(spendPercentage)
+    invest_amount = money * float(investPercentage)
+    expense_amount = money * float(expensePercentage)
+    
+
+    logging.debug(f"Save amount: {save_amount}")
+    logging.debug(f"Give amount: {give_amount}")
+    logging.debug(f"Spend amount: {spend_amount}")
+    logging.debug(f"Invest amount: {invest_amount}")
+    logging.debug(f"Expense amount: {expense_amount}")
+
+    calculateCategory(db, Transaction, 'save', save_amount, bank_name=bank_name, division="save", tag_objects=tag_objects, category=category, date=date)
+    calculateCategory(db, Transaction, 'give', give_amount, bank_name=bank_name, division="give", tag_objects=tag_objects, category=category, date=date)
+    calculateCategory(db, Transaction, 'spend', spend_amount, bank_name=bank_name, division="spend", tag_objects=tag_objects, category=category, date=date)
+    calculateCategory(db, Transaction, 'invest', invest_amount, bank_name=bank_name, division="invest", tag_objects=tag_objects, category=category, date=date)
+    calculateCategory(db, Transaction, 'expense', expense_amount, bank_name=bank_name, division="expense", tag_objects=tag_objects, category=category, date=date)
+
+def process_data(granularity, Transaction):
         user_id=session.get("user_id")
-        amounts_query = LabelModel.query.with_entities(LabelModel.amount, LabelModel.timestamp).order_by(LabelModel.timestamp).filter_by(user_id=user_id).all()
+        amounts_query = Transaction.query.with_entities(Transaction.amount, Transaction.timestamp).order_by(Transaction.timestamp).filter_by(user_id=user_id).all()
         data = []
         unique_dates = set()
         cumulative = 0
@@ -169,108 +285,21 @@ def process_data(granularity, LabelModel):
 
         return data, unique_dates, last_record 
 
-def cycle_through_money_table(db, money_record):
-    granularity = '%Y-%m-%d %H:%M:%S'
-
-    for label, model_class in model_map.items():
-        logging.debug(f"Processing data for {label} model")
-
-        if money_record is None:
-            logging.error("money_record is None in cycle_through_money_table")
-            
-        
-        # Call the process_data function
-        _, _, last_record = process_data(granularity, model_class)
-        
-        # Update the money record with the last_record
-        
-        setattr(money_record, label, last_record)
-        logging.debug(f"{money_record} recorded successfully")
-        db.session.commit()
-
     
-
-def calculateCategory(db, LabelModel, label, money, description, root, tag):
-    logging.debug(f"Calculating category: {label} with amount: {money}")
-    logging.debug(f"description: { description } ")
-    if not description:
-        description = "none"
-    user_id = session.get("user_id")
-    if user_id is None:
-        logging.error("User ID is None. Cannot proceed with calculation.")
-        return
-    
-    logging.debug(f"User ID: {user_id}")
-    try:
-        
-        logging.debug(f"No existing category record found, creating a new one")
-        new_category_record = LabelModel(user_id=user_id, amount=money, root=root, description=description, tag=tag)
-        db.session.add(new_category_record)
-        db.session.commit()
-        
-        money_record = initialize_money_record(db)
-        
-        logging.debug(f"Updating existing money record: { money_record }")
-
-        granularity = '%Y-%m-%d %H:%M:%S'
-        _, _, last_record = process_data(granularity, LabelModel)
-     
-        setattr(money_record, label, last_record)
-        db.session.commit()
-
-        logging.debug("Transaction committed successfully")
-
-    except Exception as e:
-        db.session.rollback()
-        logging.error(f"Transaction failed and rolled back: {e}")
-        raise
-
-#calculate where money goes and what percentage goes there
-def calculateAllMoney(db, Money, tag):
-    logging.debug("Calculating all money allocations")
-    description = request.form.get("transaction_description")
-    savePercentage = Decimal('0.5')
-    givePercentage = Decimal('0.2')
-    spendPercentage = Decimal('0.2')
-    investPercentage = Decimal('0.1')
-    expensePercentage = Decimal('0')
-
-    money = Decimal(request.form.get("recordedTransaction"))
-
-    save_amount = money * savePercentage
-    give_amount = money * givePercentage
-    spend_amount = money * spendPercentage
-    invest_amount = money * investPercentage
-    expense_amount = money * expensePercentage
-    
-
-    logging.debug(f"Save amount: {save_amount}")
-    logging.debug(f"Give amount: {give_amount}")
-    logging.debug(f"Spend amount: {spend_amount}")
-    logging.debug(f"Invest amount: {invest_amount}")
-    logging.debug(f"Expense amount: {expense_amount}")
-
-    calculateCategory(db, Save, 'save', save_amount, description, root="external", tag=tag)
-    calculateCategory(db, Give, 'give', give_amount, description, root="external", tag=tag)
-    calculateCategory(db, Spend, 'spend', spend_amount, description, root="external", tag=tag)
-    calculateCategory(db, Invest, 'invest', invest_amount, description, root="external", tag=tag)
-    calculateCategory(db, Expense, 'expense', expense_amount, description, root="external", tag=tag)
-
-def graph_records(LabelModel):
-
+def graph_records(Transaction):
     # Step 1: Check unique dates by day
     granularity = '%Y-%m-%d'
-    data, unique_dates,_ = process_data(granularity, LabelModel)
+    data, unique_dates,_ = process_data(granularity, Transaction)
 
     # Step 2: If fewer than 5 unique days, check by date and time
     if len(unique_dates) < 4:
         granularity = '%Y-%m-%d %H:%M:%S'
-        data, unique_dates,_ = process_data(granularity, LabelModel)
+        data, unique_dates,_ = process_data(granularity, Transaction)
 
     # Step 3: If more than 60 unique days, check by months
     elif len(unique_dates) > 60:
         granularity = '%Y-%m'
-        data, unique_dates,_ = process_data(granularity, LabelModel)
+        data, unique_dates,_ = process_data(granularity, Transaction)
 
 
     cumulative_float = [float(entry['cumulative_amount']) for entry in data]
@@ -279,12 +308,12 @@ def graph_records(LabelModel):
     return cumulative_float, unique_dates
 
 
-def delete_record(db, record_id, LabelModel):
+def delete_record(db, record_id, Transaction):
     # Replace Money with the appropriate model if necessary
     try:
         user_id = session.get("user_id")
         logging.debug(f"delete record: {record_id}")
-        record = LabelModel.query.filter_by(id=record_id, user_id=user_id).first()
+        record = Transaction.query.filter_by(id=record_id, user_id=user_id).first()
         db.session.delete(record)
         logging.debug(f"delete successful")
         db.session.commit()

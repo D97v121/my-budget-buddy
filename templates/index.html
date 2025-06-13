@@ -10,7 +10,11 @@
   <div class="parallax-content">
     <h1 class="hero-title">Track Your Finances</h1>
     <p class="hero-subtitle">Simple Stewardship</p>
-    <button class="hero-btn" onclick="scrollToMain()">Get Started</button>
+    <form id="plaidForm" action="/api/create_link_token" method="POST">
+      {{ form.hidden_tag() }}  <!-- ✅ Flask-WTF automatically includes CSRF token -->
+      <button type="submit" id="link-button" class="hero-btn">Link Accounts</button>
+    </form>
+  
   </div>
 </div>
 
@@ -34,10 +38,12 @@
     <div class ="container">
       <h2 class="mt-5">Record transactions manually
         <form id="transactionForm" action="/" method="POST" class="needs-validation" novalidate>
+          {{ form.hidden_tag() }}  
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="form_id" value="transactionForm">
           <div class="form-group">
-            <select required name="category" id="category" class="form-control form-select">
-              <option value="" disabled selected>Choose a Category</option>
+            <select required name="division" id="division" class="form-control form-select">
+              <option value="" disabled selected>Choose a Division</option>
               <option class="select" value="allMoney">General</option>
               <option class="select" value="save">Save</option>
               <option class="select" value="spend">Spend</option>
@@ -58,20 +64,22 @@
             </div>
           </div>
           <div class="form-group">
-            <input name="transaction_description" class="form-control" type="text" placeholder="Short description (optional)" maxlength="60">
+            <input name="description" class="form-control" type="text" placeholder="Description (optional)" maxlength="60">
           </div>
           <div class="form-group">
-            <select required name="tag" id="tag" class="form-control form-select" >
-              <option class="select" disabled selected>Choose a tag</option>
+            <select required name="tags[]" id="tag" class="form-control form-select" >
+              <option class="select" disabled selected>Select tags</option>
               <option class="select" value="none">None</option>
               {% for tag in tags_list %}
                 <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
               {% endfor %}
             </select>
+            <div id="selected-tags-container"></div>
             <div id="create_tag_link">
               <a href= "{{ url_for('tags') }}">Create tag</a>
             </div>
           </div>
+          <input type="hidden" name="tags[]" id="hidden-tags">
           <button type="submit" id="submit1" class="btn">Submit</button>
         </form>
       </h2>
@@ -80,6 +88,8 @@
     <div class ="container">
       <h2 class="mt-5">Transfer Money
         <form id="transferForm" class="needs-validation" action="/" method="POST" novalidate>
+          {{ form.hidden_tag() }}  
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="form_id" value="transferForm">
           <input type="hidden"  name="tag_id" value="tag.id">
 
@@ -113,7 +123,7 @@
             </div>
           </div>
           <div>
-            <input name="transaction_description" class="form-control" type="text" placeholder="Short description (optional)">
+            <input name="category" class="form-control" type="text" placeholder="Category (optional)">
           </div>
         <button type="submit" id="submit2" class="btn">Submit</button>
     </form>
@@ -121,9 +131,67 @@
     </div>
   </div>
 </main>
-
 <!-- Bootstrap JS -->
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
 <script>
+  async function getCSRFToken() {
+    let cookies = document.cookie.split("; ");
+    for (let cookie of cookies) {
+        let [name, value] = cookie.split("=");
+        if (name === "csrf_token") return value;
+    }
+    return null;
+}
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const selectBox = document.getElementById('tag');
+    const selectedContainer = document.getElementById('selected-tags-container');
+    const hiddenTagsInput = document.getElementById('hidden-tags');
+
+    let selectedTags = [];
+
+    // Handle selection
+    selectBox.addEventListener('change', function () {
+        const selectedValue = selectBox.value;
+
+        // Prevent duplicate selections
+        if (selectedTags.includes(selectedValue)) {
+            return;
+        }
+
+        // Add to the selected tags list
+        if (selectedValue && selectedValue !== 'Select tags') {
+            selectedTags.push(selectedValue);
+
+            // Update the hidden input field
+            hiddenTagsInput.value = JSON.stringify(selectedTags);
+
+            // Display selected tags
+            const tagElement = document.createElement('div');
+            tagElement.className = 'selected-tag';
+            tagElement.textContent = selectedValue;
+
+            // Add a remove button to each tag
+            const removeButton = document.createElement('span');
+            removeButton.textContent = ' ✕';
+            removeButton.className = 'remove-tag';
+            removeButton.addEventListener('click', function () {
+                // Remove tag from list
+                selectedTags = selectedTags.filter(tag => tag !== selectedValue);
+                hiddenTagsInput.value = JSON.stringify(selectedTags);
+                selectedContainer.removeChild(tagElement);
+            });
+
+            tagElement.appendChild(removeButton);
+            selectedContainer.appendChild(tagElement);
+
+            // Reset the select box to the default
+            selectBox.selectedIndex = 0;
+        }
+    });
+});
+
   leftInSpend = "{{ left_in_spend }}";
   spendingColor = "{{ spending_color }}"; 
   var counts = {{ counts|tojson|safe }};
@@ -155,6 +223,63 @@
           form.classList.add('was-validated');
       });
   });
+  
+  document.addEventListener("DOMContentLoaded", function () {
+  const linkButton = document.getElementById("link-button");
+  
+
+  // Click handler for the Link button
+  linkButton.addEventListener("click", async function () {
+    event.preventDefault(); 
+    const csrfToken = document.querySelector("input[name='csrf_token']").value;
+
+    fetch("/api/create_link_token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        const handler = Plaid.create({
+          token: data.link_token, // Use the link token returned from the server
+          onSuccess: function (public_token, metadata) {
+            // Send the public_token to your server to exchange it for an access_token
+            fetch("/api/set_access_token", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json", 
+                "X-CSRF-Token": csrfToken
+              },
+              body: JSON.stringify({
+                public_token: public_token,
+              }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Access token obtained:", data);
+                // Optionally, you can now fetch account data or display a success message
+              })
+              .catch((error) => {
+                console.error("Error exchanging public token:", error);
+              });
+          },
+          onExit: function (err, metadata) {
+            // Optionally, handle when the user exits the Link flow
+            if (err) {
+              console.error("Error during Link flow:", err);
+            }
+          },
+        });
+        handler.open(); // Open the Plaid Link modal
+      })
+      .catch((error) => {
+        console.error("Error fetching link token:", error);
+      });
+  });
+});
+
 
 </script>
 

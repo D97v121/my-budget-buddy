@@ -21,6 +21,7 @@
                         <td class="text-end">
                             <button class="btn btn-primary edit-note">Edit</button>
                             <form method="POST" action="{{ url_for('delete_goal', goal_id=goal.id) }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
                                 <button type="submit" class="btn btn-danger">Delete</button>
                             </form>
                         </td>
@@ -28,6 +29,7 @@
                     <tr class="edit-form" style="display: none;">
                         <td colspan="3">
                             <form method="POST" action="{{ url_for('update_goal', goal_id=goal.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
                                 <div class="input-container">
                                     <textarea name="content" class="form-control" rows="2" required>{{ goal.content }}</textarea>
                                 </div>
@@ -49,6 +51,7 @@
                 <tr>
                     <td colspan="3">
                         <form method="POST" action="{{ url_for('add_goal') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
                             <div class="input-container">
                                 <textarea name="content" class="form-control" rows="2" placeholder="Add a new goal..." required></textarea>
                             </div>

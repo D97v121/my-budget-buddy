@@ -11,15 +11,15 @@
             <tbody>
                 <tr>
                     <th class="text-end">Amount</th>
-                    <th class="text-end">Root</th>
-                    <th class="text-end">Description</th>
+                    <th class="text-end">Bank Name</th>
+                    <th class="text-end">Category</th>
                     <th class="text-end">Date</th>
                 </tr>
                 {% for record in reversed_give %}
                     <tr>
                         <td class="text-end">{{ record.amount|usd }}</td>
-                        <td class="text-end">{{ record.root }}</td>
-                        <td class="text-end">{{ record.description }}</td>
+                        <td class="text-end">{{ record.bank_name }}</td>
+                        <td class="text-end">{{ record.category }}</td>
                         <td class="text-end">{{ record.timestamp }}</td>
                     </tr>
                 {% endfor %}

@@ -31,6 +31,7 @@
 
 <div class="container" style="width:600px; padding-right:100px;">
     <form id="tagForm" action="/settings/tags" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
         <table id="tagTable" class="table table-bordered table-striped">
             {% for tag in tags %}
                 <tr>
@@ -91,6 +92,7 @@
         newRow.innerHTML = `
             <td>    
                 <form id="newTagForm" action="/add_tag" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
                     <div>
                         <input type="hidden" name="new_tag_id" >
                         <input type="checkbox" id="select_new" name="select_new" class="checkbox">

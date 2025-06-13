@@ -198,13 +198,25 @@ transform: translateY(-5px); /* Subtle hover effect */
 
 /* Forms */
 .form-control {
-font-size: 16px;
-margin: 10px;
-padding: 10px;
-border: 1px solid #ccc;
-border-radius: 5px;
-width: 100%;
-box-sizing: border-box;
+  font-size: 16px;
+  margin: 10px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-control-history {
+  font-size: 16px;
+  margin: 0px;
+  padding: 0px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  max-height: 40px;
 }
 
 #create_tag_link {
@@ -445,4 +457,181 @@ background-color: #16a085;
   padding-top: 10px;
   max-width: 10px;
   max-height: 10px;
+}
+
+.mini_buttons {
+  display: inline-flex;
+  align-items: center; /* Center vertically */
+  justify-content: center; /* Center horizontally */
+  font-size: 10px;
+  padding-top: 10px;
+  max-width: 10px;
+  max-height: 10px;
+  background-color: #1abc9c;
+  color: #ffffff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin: 0px;
+}
+
+.form-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-fields {
+  flex: 1; 
+  display: flex;
+  gap: 10px;
+  margin: 5px;
+  justify-content: center;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 5px;
+  margin-top: -35px;
+}
+
+.truncate {
+  max-width: 100px; /* Adjust the width as needed */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* search and sort features on history page */
+.sortable {
+  cursor: pointer;
+}
+
+.sortable.ascending::after {
+  content: " ↑";
+}
+
+.sortable:not(.ascending)::after {
+  content: " ↓";
+}
+
+.search-container {
+  text-align: right;
+}
+
+#search-bar {
+  width: 300px;
+  padding: 5px;
+  justify-content: center;
+  align-items: center;
+}
+
+
+/* resources page */
+.resources_head {
+  text-align: center;
+}
+
+.resources-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.resource-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  text-align: center;
+  padding: 15px;
+  transition: transform 0.3s ease-in-out;
+}
+
+.resource-card img {
+  max-width: 100%;
+  height: auto;
+  border-bottom: 1px solid #ddd;
+}
+
+.resource-card h2 {
+  font-size: 1.2rem;
+  margin: 15px 0;
+}
+
+.resource-card p {
+  font-size: 1rem;
+  color: #666;
+  margin: 10px 0 15px;
+}
+
+.resource-card a {
+  display: inline-block;
+  padding: 10px 15px;
+  background-color: #2d89ef;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.resource-card a:hover {
+  background-color: #1e5cbf;
+}
+
+.resource-card:hover {
+  transform: translateY(-10px);
+}
+
+/* Style for multi-select dropdown */
+/* Style the dropdown */
+.form-select {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+}
+
+/* Style the selected tags container */
+#selected-tags-container {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+/* Style individual selected tags */
+.selected-tag {
+  align-items: center;
+  justify-content: space-between;
+  max-width: 150px; /* Adjust the width as needed */
+  text-overflow: ellipsis;
+  display: flex;
+  padding: 5px 10px;
+  background-color: #1abc9c;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+/* Style the remove button for tags */
+.remove-tag {
+  margin-left: 8px;
+  cursor: pointer;
+  color: white;
+  font-weight: bold;
+}
+
+.remove-tag:hover {
+  color: #ff0000;
+}
+
+.vertical-form-fields {
+  display:flex;
+  flex-direction: column;
 }

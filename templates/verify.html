@@ -6,27 +6,7 @@
     <title>Verify Records</title>
 </head>
 <body>
-    <h1>Saved Records</h1>
-    <ul>
-        {% for record in save_data %}
-            <li>User_id: {{ record.user_id }}, Amount: {{ record.amount }}, Root: {{ record.root }}, Description: {{ record.description }}, Timestamp: {{ record.timestamp }}</li>
-        {% endfor %}
-    </ul>
-
-    <h1>Spend Records</h1>
-    <ul>
-        {% for record in spend_data %}
-            <li>User_id: {{ record.user_id }}, Amount: {{ record.amount }}, Root: {{ record.root }}, Description: {{ record.description }}, Timestamp: {{ record.timestamp }}</li>
-        {% endfor %}
-    </ul>
-
-    <h1>Give Records</h1>
-    <ul>
-        {% for record in give_data %}
-            <li>User_id: {{ record.user_id }}, Amount: {{ record.amount }}, Root: {{ record.root }}, Description: {{ record.description }}, Timestamp: {{ record.timestamp }}</li>
-        {% endfor %}
-    </ul>
-
+    
     <h1>User Records</h1>
     <ul>
         {% for record in user_data %}

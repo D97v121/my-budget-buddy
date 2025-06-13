@@ -3,145 +3,314 @@
 {% block body %}
 <!-- Main Content -->
 <main>
-    {% set has_records = false %}
     <div class="mainHistory">
+        <h2 class="text-center">Transactions</h2>
 
-    {% for category, records in category_records.items() %}
-    {% if records %}
-        {% set has_records = true %}
-        {% set reversed_records = records|reverse %}
-        {% set reversed_records_list = reversed_records|list %}
-        <table class="table table-group-divider table-bordered table-striped-columns">
-            <thead>
-                <th colspan="6" class="text-start center">{{ category|capitalize }} Records</th>
-            </thead>
-            <tbody>
-                <tr>
-                    <th class="text-end">Tag</th>
-                    <th class="text-end">Amount</th>
-                    <th class="text-end">Root</th>
-                    <th class="text-end">Description</th>
-                    <th class="text-end">Date</th>
-                </tr>
-                {% for record in reversed_records_list[:10] %}
-                    <tr class="record-row" data-record-id="{{ record.id }}">
-                        <td class="text-end column_width">{{ record.tag }}</td>
-                        <td class="text-end column_width">{{ record.amount|usd }}</td>
-                        <td class="text-end column_width">{{ record.root }}</td>
-                        <td class="text-end column_width">{{ record.description }}</td>
-                        <td class="text-end column_width">{{ record.timestamp | timestamp_editor }}</td>
-                        <td class="edit-form text-end row_width" style="display: none;">
+        <!-- Search Bar -->
+        <div class="search-container text-center">
+            <input type="text" id="search-bar" placeholder="Search transactions..." class="form-control d-inline-block mb-3" style="max-width: 400px;">
+        </div>
+        <div class="text-center mb-4">
+            <button id="refresh-transactions" class="btn btn-primary">Refresh Transactions</button>
+        </div>
+
+        {% if transactions %}
+            <table class="table table-group-divider table-bordered table-striped-columns" id="transactions-table">
+                <thead>
+                    <tr>
+                        <th class="sortable text-end" data-column="tag">Tags</th>
+                        <th class="sortable text-end" data-column="division">Division</th>
+                        <th class="sortable text-end" data-column="amount">Amount</th>
+                        <th class="sortable text-end" data-column="bank_name">Account</th>
+                        <th class="sortable text-end" data-column="date">Date</th>
                     </tr>
-                    <tr class="edit-form" style="display: none;">
-                        
-                            <form method="POST" action="{{ url_for('update_record', record_id=record.id) }}">
-                                <input type="hidden" name="category" value="{{ category }}">
-                                <input type="hidden" name="record_id" value="{{ record.id }}">
-                                <input type="hidden" name="deleteBoolean" value="false">
-                            
-                            <td>
-                                <select required name="tag" id="tag" class="form-control form-select">
-                                    <option class="select" disabled selected>Choose a tag</option>
-                                    <option class="select" value="none">None</option>
-                                    {% for tag in tags_list %}
-                                      <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions|reverse %}
+                        <tr class="record-row" data-record-id="{{ transaction.id }}">
+                            <td class="text-end column_width truncate" data-column="tag">
+                                {% if transaction.tags %}
+                                    {% for tag in transaction.tags %}
+                                        {{ tag.name }}{% if not loop.last %}, {% endif %}
                                     {% endfor %}
-                                </select>
+                                {% else %}
+                                    None
+                                {% endif %}
                             </td>
-                            <td>
-                                <input type="text" name="amount" value="{{ record.amount|usd }}" class="form-control">
+                            <td class="text-end column_width" data-column="division">{{ transaction.division }}</td>
+                            <td class="text-end column_width" data-column="amount">
+                                {% if transaction.amount < 0 %}
+                                    <span class="text-success">+{{ (transaction.amount) | usd }}</span>
+                                {% else %}
+                                    <span class="text-danger">-{{ transaction.amount | usd }}</span>
+                                {% endif %}
                             </td>
-                            <td>
-                                <input type="text" name="root" value="{{ record.root }}" class="form-control">
-                            </td>
-                            <td>
-                                <input type="text" name="description" value="{{ record.description }}" class="form-control">
-                            </td>
-                            <td>
-                                <input type="text" name="timestamp" value="{{ record.timestamp|timestamp_editor }}" class="form-control">
-                            </td>
-                            <td>
-                                <button type="submit" class="btn btn-primary">Update</button>
-                                <button type="button" class="btn historyButtons cancel-edit">Cancel</button>
-                                <button type="button" class="btn historyButtons delete-transaction" >Delete</button>
-                            </td>
-                        </form>
-                    </tr>
-                 
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td class="text-start center" colspan="6"><a href="{{ url_for(category + '_history') }}">See more records here</a></td>  
-                </tr>
-            </tfoot>
-        </table>
+                            <td class="text-end column_width truncate" data-column="bank_name">{{ transaction.bank_account }}</td>
+                            <td class="text-end column_width" data-column="date">{{ transaction.date  }}</td>
+                        </tr>
+                        <tr class="edit-form" style="display: none;">
+                            <form method="POST" action="{{ url_for('update_transaction', transaction_id=transaction.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
+                                <td colspan="6">
+                                    <div class="form-container">
+                                        <div class="form-fields"> 
+                                            <div class="vertical-form-fields">
+                                                <select name="tags[]" id="tag-dropdown" class="form-control-history form-select">
+                                                    <option class="select" disabled selected>Add tags</option>
+                                                    {% for tag in tags_list %}
+                                                        <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                
+                                                <div id="selected-tags-container" class="selected-tags-container">
+                                                    {% for tag in transaction.tags %}
+                                                        <div class="selected-tag" data-tag="{{ tag.name }}">
+                                                            {{ tag.name }}
+                                                            <span class="remove-tag" data-tag="{{ tag.name }}"> ✕</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <input type="hidden" id="hidden-tags" name="tags" value='{{ transaction.tags | map(attribute="name") | list | tojson }}'>
+                                            </div>  
+                                            <select required name="division" id="division" class="form-control-history form-select">
+                                                <option class="select">{{ transaction.division }}</option>
+                                                {% for division in divisions_list %}
+                                                    {% if division != transaction.division %}
+                                                        <option value="{{ division }}">{{ division }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                            <input type="text" name="amount" value="{{ transaction.amount|usd }}" class="form-control-history">
+                                            <input type="text" name="bank_name" value="{{ transaction.bank_name }}" class="form-control-history">
+                                            <input type="text" name="date" value="{{ transaction.date | timestamp_editor }}" class="form-control-history">
+                                            <input type="hidden" name="deleteBoolean" value="false">
+                                        </div>
+                                        <div class="form-buttons">
+                                            <button type="submit" name="editButton" class="btn btn-primary mini_buttons">Update</button>
+                                            <button type="button" name="cancelButton" class="btn historyButtons cancel-edit mini_buttons">Cancel</button>
+                                            <button type="button" name="deleteButton" class="btn historyButtons delete-transaction mini_buttons">Delete</button>
+                                        </div>
+                                    </div>
+                                </td>
+                            </form>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-center">No transactions found</p>
         {% endif %}
-        {% if has_records == false %}
-            <!-- Display message if no records are found -->
-            <p class="text-center">No records found</p>
-        {% endif %}
-        {% endfor %}
     </div>
-    </main>
+</main>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const rows = document.querySelectorAll('.record-row');
+    document.addEventListener('DOMContentLoaded', function () {
+        const rows = document.querySelectorAll('.record-row');
 
-            rows.forEach(row => {
-                const editButton = row.querySelector('.edit-button');
-                const cancelButton = row.nextElementSibling?.querySelector('.cancel-edit'); // Select cancel button in the next row
-                const deleteButton = row.nextElementSibling?.querySelector('.delete-transaction');
-                const editFormRow = row.nextElementSibling; // The edit form row
-                const form = row.nextElementSibling?.querySelector('form');
+    rows.forEach(row => {
+        const editFormRow = row.nextElementSibling; // The edit form row
+        
+        if (!editFormRow) {
+            console.error("No edit form found for row.");
+            return;
+        }
 
-                // Toggle edit mode on double click or when edit button is clicked
-                row.addEventListener('dblclick', function() {
-                    toggleEdit(row, true);
-                });
+        const selectBox = editFormRow.querySelector('#tag-dropdown');
+        const selectedContainer = editFormRow.querySelector('#selected-tags-container');
+        const hiddenTagsInput = editFormRow.querySelector('#hidden-tags');
 
-                if (editButton) {
-                    editButton.addEventListener('click', function() {
-                        toggleEdit(row, true);
-                    });
-                }
+        // Parse initial tags from hidden input
+        let selectedTags;
+        try {
+            selectedTags = hiddenTagsInput.value ? JSON.parse(hiddenTagsInput.value) : [];
+        } catch (e) {
+            console.error("Error parsing hidden tags input:", e);
+            selectedTags = [];
+        }
 
-                if (cancelButton) {
-                    cancelButton.addEventListener('click', function() {
-                        toggleEdit(row, false);
-                    });
-                }
+        function initializeSelectedTags() {
+            selectedContainer.innerHTML = ''; // Clear the container
+            selectedTags.forEach(tag => addTagToContainer(tag));
+            updateDropdownOptions();
+        }
 
-                if (deleteButton) {
-                    deleteButton.addEventListener('click', function() {
-                        if (form) {
-                            const deleteBoolean = form.querySelector('input[name="deleteBoolean"]');
-                            if (deleteBoolean) {
-                                deleteBoolean.value = 'true';
-                                toggleEdit(row, false);
-                            }
-                            // Submit the form
-                            form.submit();
-                        }
-                    });
-                }
+        function addTagToContainer(tagName) {
+            const tagElement = document.createElement('div');
+            tagElement.className = 'selected-tag';
+            tagElement.textContent = tagName;
+
+            const removeButton = document.createElement('span');
+            removeButton.textContent = ' ✕';
+            removeButton.className = 'remove-tag';
+            removeButton.addEventListener('click', function () {
+                selectedTags = selectedTags.filter(tag => tag !== tagName);
+                hiddenTagsInput.value = JSON.stringify(selectedTags);
+                selectedContainer.removeChild(tagElement);
+                updateDropdownOptions();
             });
 
-            function toggleEdit(row, isEditing) {
-                const cells = row.querySelectorAll('td');
-                const editFormRow = row.nextElementSibling; // The edit form row
+            tagElement.appendChild(removeButton);
+            selectedContainer.appendChild(tagElement);
+        }
 
-                // Hide/show cells in the data row and show/hide the edit form row
-                cells.forEach(cell => {
-                    cell.style.display = isEditing ? 'none' : '';
-                });
+        function updateDropdownOptions() {
+            Array.from(selectBox.options).forEach(option => {
+                option.style.display = selectedTags.includes(option.value) ? 'none' : '';
+            });
+        }
 
-                if (editFormRow) {
-                    editFormRow.style.display = isEditing ? 'table-row' : 'none';
-                }
+        selectBox.addEventListener('change', function () {
+            const selectedValue = selectBox.value;
+
+            if (selectedValue && !selectedTags.includes(selectedValue)) {
+                selectedTags.push(selectedValue);
+                hiddenTagsInput.value = JSON.stringify(selectedTags);
+                addTagToContainer(selectedValue);
+                updateDropdownOptions();
+                selectBox.selectedIndex = 0; // Reset dropdown
             }
         });
+
+        // Initialize selected tags for the current edit form
+        initializeSelectedTags();
+
+        const toggleEdit = (isEditing) => {
+            const cells = row.querySelectorAll('td');
+            cells.forEach(cell => {
+                cell.style.display = isEditing ? 'none' : '';
+            });
+
+            editFormRow.style.display = isEditing ? 'table-row' : 'none';
+        };
+
+        row.addEventListener('dblclick', () => toggleEdit(true));
+        const cancelButton = editFormRow.querySelector('.cancel-edit');
+        const deleteButton = editFormRow.querySelector('.delete-transaction');
+        const form = editFormRow.querySelector('form');
+        if (cancelButton) {
+            cancelButton.addEventListener('click', () => toggleEdit(false));
+        }
+        if (deleteButton) {
+            deleteButton.addEventListener('click', function(event) {
+                event.preventDefault();
+                if (form) { // Check if the form exists
+                    console.log("Form referenced by delete button:", form); 
+                    const deleteBoolean = form.elements['deleteBoolean'];
+                    if (deleteBoolean) {
+                        deleteBoolean.value = 'true'; // Set value
+                        console.log("deleteBoolean set to true");
+                    } else {
+                        console.error("deleteBoolean input not found in the form");
+                    }
+                    // Prevent default form submission
+                
+
+                    // Submit the form using JavaScript (optional)
+                    // You can uncomment the following lines to submit the form using JavaScript
+                    form.submit();
+                }
+            });
+        }
+            
+    });
+
+    const table = document.getElementById('transactions-table');
+    const searchBar = document.getElementById('search-bar');
+
+    // Search Functionality
+    searchBar.addEventListener('input', function () {
+        const query = searchBar.value.toLowerCase();
+        const rows = table.querySelectorAll('.record-row'); // Only target record-row
+
+        rows.forEach(row => {
+            const rowText = row.textContent.toLowerCase();
+            const editFormRow = row.nextElementSibling; // Corresponding edit-form row
+
+            // Show or hide record-row based on query
+            const shouldDisplay = rowText.includes(query);
+            row.style.display = shouldDisplay ? '' : 'none';
+
+            // Always hide the edit-form row
+            if (editFormRow && editFormRow.classList.contains('edit-form')) {
+                editFormRow.style.display = 'none';
+            }
+        });
+    });
+
+    // Sort Functionality
+    const headers = table.querySelectorAll('.sortable');
+    headers.forEach(header => {
+        header.addEventListener('click', function () {
+            const column = header.getAttribute('data-column');
+            const ascending = header.classList.toggle('ascending');
+
+            sortTableByColumn(table, column, ascending);
+        });
+    });
+
+    function sortTableByColumn(table, column, ascending) {
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('.record-row'));
+
+        const columnIndex = Array.from(headers).findIndex(h => h.getAttribute('data-column') === column);
+
+        rows.sort((a, b) => {
+            const aText = a.children[columnIndex]?.textContent.trim() || '';
+            const bText = b.children[columnIndex]?.textContent.trim() || '';
+
+            if (!isNaN(parseFloat(aText)) && !isNaN(parseFloat(bText))) {
+                return ascending
+                    ? parseFloat(aText) - parseFloat(bText)
+                    : parseFloat(bText) - parseFloat(aText);
+            }
+            return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+        });
+
+        rows.forEach(row => {
+            const editFormRow = row.nextElementSibling;
+            tbody.appendChild(row); // Move the transaction row
+            if (editFormRow && editFormRow.classList.contains('edit-form')) {
+                tbody.appendChild(editFormRow); // Move its corresponding edit form row
+            }
+        });
+    }
+
+    const refreshButton = document.getElementById('refresh-transactions');
+    const transactionsTable = document.getElementById('transactions-table');
+
+    refreshButton.addEventListener('click', async function () {
+        // Show loading indication
+        refreshButton.textContent = "Refreshing...";
+        refreshButton.disabled = true;
+
+        try {
+            // Send POST request to refresh transactions
+            const response = await fetch('/api/refresh_transactions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+            });
+
+            const data = await response.json();
+
+            if (data.status === "success") {
+                // Refresh the page to display updated transactions
+                location.reload();
+            } else {
+                alert(data.message || "Failed to refresh transactions.");
+            }
+        } catch (error) {
+            console.error("Error refreshing transactions:", error);
+            alert("An error occurred while refreshing transactions.");
+        } finally {
+            // Reset button state
+            refreshButton.textContent = "Refresh Transactions";
+            refreshButton.disabled = false;
+        }
+    });
+});
 
     </script>
 
