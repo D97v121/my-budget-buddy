@@ -126,10 +126,10 @@ def handle_webhook():
 
 
 if PLAID_ENV == 'sandbox':
-    host = plaid.Environment.Sandbox
+    host = Environment.Sandbox
 
 if PLAID_ENV == 'production':
-    host = plaid.Environment.Production
+    host = Environment.Production
 
 # Parameters used for the OAuth redirect Link flow.
 #
@@ -141,7 +141,7 @@ if PLAID_ENV == 'production':
 PLAID_REDIRECT_URI = empty_to_none('PLAID_REDIRECT_URI')
 
 configuration = plaid.Configuration(
-    plaid.Environment.Production,
+    host=plaid.Environment.Production,
     api_key={
         'clientId': PLAID_CLIENT_ID,
         'secret': PLAID_SECRET,
