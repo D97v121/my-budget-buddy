@@ -125,12 +125,6 @@ def handle_webhook():
     return jsonify({"status": "success"}), 200
 
 
-if PLAID_ENV == 'sandbox':
-    host = Environment.Sandbox
-
-if PLAID_ENV == 'production':
-    host = Environment.Production
-
 # Parameters used for the OAuth redirect Link flow.
 #
 # Set PLAID_REDIRECT_URI to 'http://localhost:3000/'
@@ -141,7 +135,7 @@ if PLAID_ENV == 'production':
 PLAID_REDIRECT_URI = empty_to_none('PLAID_REDIRECT_URI')
 
 configuration = plaid.Configuration(
-    host=host,
+    host=Environment.PRODUCTION,
     api_key={
         'clientId': PLAID_CLIENT_ID,
         'secret': PLAID_SECRET,
