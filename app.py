@@ -141,7 +141,7 @@ if PLAID_ENV == 'production':
 PLAID_REDIRECT_URI = empty_to_none('PLAID_REDIRECT_URI')
 
 configuration = plaid.Configuration(
-    host=plaid.Environment.Production,
+    host=Environment.Production,
     api_key={
         'clientId': PLAID_CLIENT_ID,
         'secret': PLAID_SECRET,
