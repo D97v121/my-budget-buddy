@@ -39,6 +39,5 @@ python-dotenv
 plaid-python
 sqlalchemy
 datetime
-logging
 requests
 
