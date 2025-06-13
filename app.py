@@ -140,7 +140,7 @@ if PLAID_ENV == 'production':
 # at https://dashboard.plaid.com/team/api.
 PLAID_REDIRECT_URI = empty_to_none('PLAID_REDIRECT_URI')
 
-configuration = plaid.Configuration(
+configuration = Configuration(
     host=Environment.Production,
     api_key={
         'clientId': PLAID_CLIENT_ID,
