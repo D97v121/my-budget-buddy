@@ -351,7 +351,7 @@ def login():
         # Ensure username exists and password is correct
         if user is None or not check_password_hash(user.hash, password):
             error_message = "Incorrect username or password"
-            return render_template("login.html", error_message=error_message)
+            return render_template("login.html", form=form, error_message=error_message)
 
         # Remember which user has logged in
         session.clear()
