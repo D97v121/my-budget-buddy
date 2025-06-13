@@ -41,4 +41,5 @@ plaid-python
 sqlalchemy
 datetime
 requests
+openai
 
