@@ -9,3 +9,4 @@ instance/
 *.bak
 *.pyc
 .DS_Store
+.env
