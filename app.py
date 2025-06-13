@@ -10,6 +10,7 @@ from models import db, Give, Spend, Save, Invest, Money, Expense, User, Tags, Ta
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime 
+from plaid.configuration import Configuration, Environment
 from sqlalchemy.inspection import inspect
 from collections import defaultdict
 from openai import OpenAI
