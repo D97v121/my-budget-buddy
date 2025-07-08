@@ -1,13 +1,20 @@
 //CIRCLE CHARTS (index)
 
-leftInSpend = leftInSpend;
+spend = Math.max(leftInSpend, 0);
 spendingColor = spendingColor;
+total_spend = total_spend - leftInSpend;
+money_lost_this_month = money_lost_this_month;
+money_gained_this_month = money_gained_this_month;
+save = totalSave;
+give = totalGive;
+invest = totalInvest;
+
 const data = {
-    labels: ['Expenses'],
+    labels: ['Money left', 'Money spent'],
     datasets: [{
-    label: 'Money Spent', 
-    data: [leftInSpend, leftInSpend], 
-    backgroundColor: [spendingColor, '#FFFFFF'], 
+    label: ' ', 
+    data: [spend, total_spend], 
+    backgroundColor: ['#4BAEA0', '#C76582'], 
     }]
   };
 
@@ -20,10 +27,14 @@ const data = {
       cutout: "65%",
       plugins: {
         legend: {
-          position: 'top',
+          display: false,
         },
         tooltip: {
           enabled: true,
+        },
+        title: {
+          display: true,
+          text: 'Spend' // This will show "Spend" as a title above the chart
         }
       }
     },
@@ -35,11 +46,11 @@ const data = {
 
   
   const data2 = {
-    labels: ['categories'],
+    labels: ['save', 'spend', 'give' , 'invest'],
     datasets: [{
-    label: 'Financial Data',
-    data: [ 300, 200], 
-    backgroundColor: ['#ADD8E6', '#FFFFFF'], 
+    label: ' ',
+    data: [save, spend, give, invest], 
+    backgroundColor: ['#5B9BD5', '#C76582', '#A15C8C', '#7DA2A9'], 
     }]
   };
 
@@ -52,10 +63,14 @@ const data = {
       cutout: "65%",
       plugins: {
         legend: {
-          position: 'top',
+          display: false,
         },
         tooltip: {
-          enabled: false,
+          enabled: true,
+        },
+        title: {
+          display: true,
+          text: 'Money Distribution'
         }
       },
     },
@@ -77,11 +92,11 @@ tagNames = tagNames;
   counts = counts;
 
   const data3 = {
-    labels: tagNames,
+    labels: ['lost', 'gained'],
     datasets: [{
-    label: 'Expenses',
-    data: counts, 
-    backgroundColor: colors,
+    label: ' ',
+    data: [money_lost_this_month, money_gained_this_month], 
+    backgroundColor: ['#C76582', '#4BAEA0'],  
     }]
   };
 
@@ -98,6 +113,10 @@ tagNames = tagNames;
         },
         tooltip: {
           enabled: true,
+        }, 
+        title: {
+          display: true,
+          text: 'Something here'
         }
       }
     },

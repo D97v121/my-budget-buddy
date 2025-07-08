@@ -12,22 +12,29 @@
         </div>
         <div class="text-center mb-4">
             <button id="refresh-transactions" class="btn btn-primary">Refresh Transactions</button>
+            <button id="refresh-categories" class="btn btn-warning">Refresh Categories</button>
+            <button class="btn btn-success" id="openTransactionModal">Add Transactions</button>
+            <button id="add-bankAccount-button" class="btn btn-info">Add Bank Account</button>
         </div>
+        <div id="transactionStatus" class="text-center mt-3" style="font-weight: bold; display: none;"></div>
 
         {% if transactions %}
             <table class="table table-group-divider table-bordered table-striped-columns" id="transactions-table">
                 <thead>
                     <tr>
+                        <th class="sortable text-end" data-column="name" style="width: 20%;">Name</th>
+                        <th class="sortable text-end" data-column="tag">Account</th>
                         <th class="sortable text-end" data-column="tag">Tags</th>
                         <th class="sortable text-end" data-column="division">Division</th>
                         <th class="sortable text-end" data-column="amount">Amount</th>
-                        <th class="sortable text-end" data-column="bank_name">Account</th>
                         <th class="sortable text-end" data-column="date">Date</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for transaction in transactions|reverse %}
+                    {% for transaction in transactions | reverse %}
                         <tr class="record-row" data-record-id="{{ transaction.id }}">
+                            <td class="text-end column_width" data-column="name">{{ transaction.name }}</td>
+                            <td class="text-end column_width" data-column="account">{{ transaction.bank_account }}</td>
                             <td class="text-end column_width truncate" data-column="tag">
                                 {% if transaction.tags %}
                                     {% for tag in transaction.tags %}
@@ -39,22 +46,25 @@
                             </td>
                             <td class="text-end column_width" data-column="division">{{ transaction.division }}</td>
                             <td class="text-end column_width" data-column="amount">
-                                {% if transaction.amount < 0 %}
-                                    <span class="text-success">+{{ (transaction.amount) | usd }}</span>
+                                {% if transaction.amount > 0 %}
+                                    <span class="text-success">{{ transaction.amount | usd }}</span>
                                 {% else %}
-                                    <span class="text-danger">-{{ transaction.amount | usd }}</span>
+                                    <span class="text-danger">{{ transaction.amount | usd }}</span>
                                 {% endif %}
                             </td>
-                            <td class="text-end column_width truncate" data-column="bank_name">{{ transaction.bank_account }}</td>
-                            <td class="text-end column_width" data-column="date">{{ transaction.date  }}</td>
+                            <td class="text-end column_width" data-column="date">{{ transaction.date | timestamp_editor }}</td>
                         </tr>
-                        <tr class="edit-form" style="display: none;">
-                            <form method="POST" action="{{ url_for('update_transaction', transaction_id=transaction.id) }}">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
-                                <td colspan="6">
-                                    <div class="form-container">
-                                        <div class="form-fields"> 
-                                            <div class="vertical-form-fields">
+                        <tr class="edit-form" style="display: none; height: 0;">
+                            <td colspan="6" style="padding: 0; border: none;">
+                                <div class="popup-form" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1050; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); max-width: 600px; width: 100%;">
+                                    <form method="POST" action="{{ url_for('update_transaction', transaction_id=transaction.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
+                                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                                            <label>Name: <input type="text" name="name" value="{{ transaction.name }}" class="form-control-history"></label>
+                                            <label>Account: <input type="text" name="bank_account" value="{{ transaction.bank_account }}" class="form-control-history"></label>
+                                            <label>Note: <textarea name="note" class="form-control-history">{{ transaction.note }}</textarea></label>
+                                            <label>Tags:
+                                                <div class="vertical-form-fields">
                                                 <select name="tags[]" id="tag-dropdown" class="form-control-history form-select">
                                                     <option class="select" disabled selected>Add tags</option>
                                                     {% for tag in tags_list %}
@@ -72,27 +82,28 @@
                                                 </div>
                                                 <input type="hidden" id="hidden-tags" name="tags" value='{{ transaction.tags | map(attribute="name") | list | tojson }}'>
                                             </div>  
-                                            <select required name="division" id="division" class="form-control-history form-select">
-                                                <option class="select">{{ transaction.division }}</option>
-                                                {% for division in divisions_list %}
-                                                    {% if division != transaction.division %}
-                                                        <option value="{{ division }}">{{ division }}</option>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </select>
-                                            <input type="text" name="amount" value="{{ transaction.amount|usd }}" class="form-control-history">
-                                            <input type="text" name="bank_name" value="{{ transaction.bank_name }}" class="form-control-history">
-                                            <input type="text" name="date" value="{{ transaction.date | timestamp_editor }}" class="form-control-history">
+
+                                            </label>
+                                            <label>Division:
+                                                <select name="division" class="form-control-history">
+                                                    {% for division in divisions_list %}
+                                                        <option value="{{ division }}" {% if division == transaction.division %}selected{% endif %}>{{ division }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </label>
+                                            <label>Amount: <input type="text" name="amount" value="{{ transaction.amount | usd }}" class="form-control-history"></label>
+                                            <label>Date: <input type="text" name="date" value="{{ transaction.date | timestamp_editor }}" class="form-control-history"></label>
+                                            <label>Time:<input type="time" id="time" name="time" class="form-control-history" value="{{ transaction.timestamp.strftime('%H:%M') if transaction.timestamp else '' }}"></label>
                                             <input type="hidden" name="deleteBoolean" value="false">
+                                            <div class="form-buttons d-flex justify-content-between mt-3">
+                                                <button type="submit" name="deleteButton" class="btn btn-danger mini_buttons delete-transaction">Delete</button>
+                                                <button type="button" class="btn cancel-edit mini_buttons">Cancel</button>
+                                                <button type="submit" class="btn btn-primary mini_buttons">Update</button>
+                                            </div>
                                         </div>
-                                        <div class="form-buttons">
-                                            <button type="submit" name="editButton" class="btn btn-primary mini_buttons">Update</button>
-                                            <button type="button" name="cancelButton" class="btn historyButtons cancel-edit mini_buttons">Cancel</button>
-                                            <button type="button" name="deleteButton" class="btn historyButtons delete-transaction mini_buttons">Delete</button>
-                                        </div>
-                                    </div>
-                                </td>
-                            </form>
+                                    </form>
+                                </div>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -100,218 +111,603 @@
         {% else %}
             <p class="text-center">No transactions found</p>
         {% endif %}
+        <div id="transactionModal" class="modal" style="display:none;">
+                        <div class="modal-content" style="max-width: 600px; margin: 5% auto; background-color: white; padding: 20px; border-radius: 8px;">
+                            <span class="close-modal" style="float:right; cursor:pointer;">&times;</span>
+                            <ul class="nav nav-tabs mb-3" id="transactionTabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="manual-tab" href="#">Record Transaction</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="transfer-tab" href="#">Transfer Money</a>
+                            </li>
+                            </ul>
+                            <div id="manual-form" class="tab-form">
+                                <form id="transactionForm" action="/" method="POST" class="needs-validation" novalidate>
+                                {{ form.hidden_tag() }}  
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="form_id" value="transactionForm">
+                                <div class="form-group">
+                                    <select required name="division" id="division" class="form-control form-select">
+                                    <option value="" disabled selected>Choose a Division</option>
+                                    <option class="select" value="allMoney">General</option>
+                                    <option class="select" value="save">Save</option>
+                                    <option class="select" value="spend">Spend</option>
+                                    <option class="select" value="give">Give</option>
+                                    <option class="select" value="invest">Invest</option>
+                                    <option class="select" value="expense">Expense</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                    Please select a category.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="input-container">
+                                    <input required name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transaction amount" onchange="correctDecimals(this)">
+                                    </div>
+                                    <div class="invalid-feedback">
+                                    Please enter a valid amount.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <input name="description" class="form-control" type="text" placeholder="Description (optional)" maxlength="60">
+                                </div>
+                                <div class="form-group">
+                                    <select required name="tags[]" id="tag" class="form-control form-select" >
+                                    <option class="select" disabled selected>Select tags</option>
+                                    <option class="select" value="none">None</option>
+                                    {% for tag in tags_list %}
+                                        <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                                    {% endfor %}
+                                    </select>
+                                    <div id="selected-tags-container"></div>
+                                    <div id="create_tag_link">
+                                    <a href= "{{ url_for('tags') }}">Create tag</a>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="tags[]" id="hidden-tags">
+                                <button type="submit" id="submit1" class="btn">Submit</button>
+                                </form>
+                            </div>
+                            <div id="transfer-form" class="tab-form" style="display:none;">
+                                <form id="transferForm" class="needs-validation" action="/" method="POST" novalidate>
+                                    {{ form.hidden_tag() }}  
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                    <input type="hidden" name="form_id" value="transferForm">
+                                    <input type="hidden"  name="tag_id" value="tag.id">
+
+                                    <select required name="fromCategory" id="fromCategory" class="form-control form-select">
+                                        <option value="" disabled selected>From</option>
+                                        <option class="select" value="save">Save</option>
+                                        <option class="select" value="spend">Spend</option>
+                                        <option class="select" value="give">Give</option>
+                                        <option class="select" value="invest">Invest</option>
+                                        <option class="select" value="expense">Expense</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Please select a category.
+                                    </div>
+                                    <select required name="toCategory" id="toCategory" class="form-control form-select">
+                                        <option value="" disabled selected>To</option>
+                                        <option class="select" value="allMoney">General</option>
+                                        <option class="select" value="save">Save</option>
+                                        <option class="select" value="spend">Spend</option>
+                                        <option class="select" value="give">Give</option>
+                                        <option class="select" value="invest">Invest</option>
+                                        <option class="select" value="expense">Expense</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Please select a category.
+                                    </div>
+                                    <div class="input-container">
+                                        <input required id="recordedTransaction" name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transfer amount" onchange="correctDecimals(this)">
+                                        <div class="invalid-feedback weird-error">
+                                        Please enter a valid amount.
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <select required name="tags_transfer[]" id="tag-transfer" class="form-control form-select">
+                                        <option class="select" disabled selected>Select tags</option>
+                                        <option class="select" value="none">None</option>
+                                        {% for tag in tags_list %}
+                                            <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                                        {% endfor %}
+                                        </select>
+                                        <div id="selected-tags-container-transfer"></div>
+                                        <div id="create_tag_link">
+                                        <a href= "{{ url_for('tags') }}">Create tag</a>
+                                    </div>
+                                </div>
+                                <input type="hidden" name="tags_transfer[]" id="hidden-tags-transfer">
+                                    <button type="submit" id="submit2" class="btn">Submit</button>
+                                </form>
+                            </div>
+                        </div>
+                        </div>
     </div>
 </main>
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="display: none;">
+  <div class="overlay-background"></div>
+  <div class="overlay-content">
+    <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-light">Adding transactions... Do not refresh or leave!</p>
+  </div>
+</div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function () {
+<style>
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+
+.overlay-background {
+  background: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.overlay-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+</style>
+
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const table = document.getElementById('transactions-table');
+
+    if (table) {
         const rows = document.querySelectorAll('.record-row');
 
-    rows.forEach(row => {
-        const editFormRow = row.nextElementSibling; // The edit form row
-        
-        if (!editFormRow) {
-            console.error("No edit form found for row.");
+        rows.forEach(row => {
+            const editFormRow = row.nextElementSibling;
+            const editButton = row.querySelector('.toggle-edit');
+
+            function toggleEdit(show) {
+                if (show) {
+                    editFormRow.style.display = 'table-row';
+                    editFormRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    editFormRow.style.display = 'none';
+                }
+            }
+
+            row.addEventListener('dblclick', () => toggleEdit(true));
+            editButton?.addEventListener('click', () => toggleEdit(true));
+
+            const cancelButton = editFormRow.querySelector('.cancel-edit');
+            cancelButton?.addEventListener('click', () => toggleEdit(false));
+
+            // Tag Dropdown Logic
+            const selectBox = editFormRow.querySelector('#tag-dropdown');
+            const selectedContainer = editFormRow.querySelector('#selected-tags-container');
+            const hiddenTagsInput = editFormRow.querySelector('#hidden-tags');
+
+            let selectedTags = [];
+            try {
+                selectedTags = hiddenTagsInput.value ? JSON.parse(hiddenTagsInput.value) : [];
+            } catch (e) {
+                console.error("Error parsing hidden tags input:", e);
+                selectedTags = [];
+            }
+
+            function initializeSelectedTags() {
+                selectedContainer.innerHTML = '';
+                selectedTags.forEach(tag => addTagToContainer(tag));
+                updateDropdownOptions();
+            }
+
+            function addTagToContainer(tagName) {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'selected-tag';
+                tagElement.textContent = tagName;
+
+                const removeButton = document.createElement('span');
+                removeButton.textContent = ' ✕';
+                removeButton.className = 'remove-tag';
+                removeButton.addEventListener('click', function () {
+                    selectedTags = selectedTags.filter(tag => tag !== tagName);
+                    hiddenTagsInput.value = JSON.stringify(selectedTags);
+                    selectedContainer.removeChild(tagElement);
+                    updateDropdownOptions();
+                });
+
+                tagElement.appendChild(removeButton);
+                selectedContainer.appendChild(tagElement);
+            }
+
+            function updateDropdownOptions() {
+                Array.from(selectBox.options).forEach(option => {
+                    option.style.display = selectedTags.includes(option.value) ? 'none' : '';
+                });
+            }
+
+            selectBox.addEventListener('change', function () {
+                const selectedValue = selectBox.value;
+                if (selectedValue && !selectedTags.includes(selectedValue)) {
+                    selectedTags.push(selectedValue);
+                    hiddenTagsInput.value = JSON.stringify(selectedTags);
+                    addTagToContainer(selectedValue);
+                    updateDropdownOptions();
+                    selectBox.selectedIndex = 0;
+                }
+            });
+
+            initializeSelectedTags();
+
+            const deleteButton = editFormRow.querySelector('.delete-transaction');
+            const form = editFormRow.querySelector('form');
+            if (deleteButton) {
+                deleteButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    if (form) {
+                        console.log("Form found. Setting deleteBoolean and submitting...");
+                        const deleteBoolean = form.elements['deleteBoolean'];
+                        if (deleteBoolean) {
+                            deleteBoolean.value = 'true';
+                        }
+                        form.submit();
+                    }
+                });
+            }
+        });
+
+    // Search Functionality
+        const searchBar = document.getElementById('search-bar');
+
+        searchBar.addEventListener('input', function () {
+            const query = searchBar.value.toLowerCase();
+            const rows = table.querySelectorAll('.record-row');
+
+            rows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                const editFormRow = row.nextElementSibling;
+                const shouldDisplay = rowText.includes(query);
+                row.style.display = shouldDisplay ? '' : 'none';
+
+                if (editFormRow && editFormRow.classList.contains('edit-form')) {
+                    editFormRow.style.display = 'none';
+                }
+            });
+        });
+
+        // Sort Functionality
+        const headers = table.querySelectorAll('.sortable');
+        headers.forEach(header => {
+            header.addEventListener('click', function () {
+                const column = header.getAttribute('data-column');
+                const ascending = header.classList.toggle('ascending');
+                sortTableByColumn(table, column, ascending);
+            });
+        });
+
+        function sortTableByColumn(table, column, ascending) {
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('.record-row'));
+            const columnIndex = Array.from(headers).findIndex(h => h.getAttribute('data-column') === column);
+
+            rows.sort((a, b) => {
+                const aText = a.children[columnIndex]?.textContent.trim() || '';
+                const bText = b.children[columnIndex]?.textContent.trim() || '';
+
+                if (!isNaN(parseFloat(aText)) && !isNaN(parseFloat(bText))) {
+                    return ascending
+                        ? parseFloat(aText) - parseFloat(bText)
+                        : parseFloat(bText) - parseFloat(aText);
+                }
+                return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+            });
+
+            rows.forEach(row => {
+                const editFormRow = row.nextElementSibling;
+                tbody.appendChild(row);
+                if (editFormRow && editFormRow.classList.contains('edit-form')) {
+                    tbody.appendChild(editFormRow);
+                }
+            });
+        }
+
+    // Refresh Button Logic
+        const refreshButton = document.getElementById('refresh-transactions');
+        refreshButton.addEventListener('click', async function () {
+            refreshButton.textContent = "Refreshing...";
+            refreshButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/refresh_transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                });
+
+                const data = await response.json();
+                if (data.status === "success") {
+                    location.reload();
+                } else {
+                    alert(data.message || "Failed to refresh transactions.");
+                }
+            } catch (error) {
+                console.error("Error refreshing transactions:", error);
+                alert("An error occurred while refreshing transactions.");
+            } finally {
+                refreshButton.textContent = "Refresh Transactions";
+                refreshButton.disabled = false;
+            }
+        });
+        }
+    });
+    //refresh categories logic, delete when done:
+    const refreshCategoriesButton = document.getElementById('refresh-categories');
+    refreshCategoriesButton.addEventListener('click', async function () {
+        refreshCategoriesButton.textContent = "Refreshing Categories...";
+        refreshCategoriesButton.disabled = true;
+
+        try {
+            const response = await fetch('/api/refresh_categories', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                }
+            });
+            const data = await response.json();
+            if (data.status === "success") {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || "Failed to refresh categories.");
+            }
+        } catch (error) {
+            console.error("Error refreshing categories:", error);
+            alert("An error occurred while refreshing categories.");
+        } finally {
+            refreshCategoriesButton.textContent = "Refresh Categories";
+            refreshCategoriesButton.disabled = false;
+        }
+    });
+
+document.getElementById("openTransactionModal").addEventListener("click", function () {
+    document.getElementById("transactionModal").style.display = "block";
+});
+
+document.querySelector(".close-modal").addEventListener("click", function () {
+    document.getElementById("transactionModal").style.display = "none";
+});
+
+document.getElementById("manual-tab").addEventListener("click", function () {
+    document.getElementById("manual-form").style.display = "block";
+    document.getElementById("transfer-form").style.display = "none";
+    this.classList.add("active");
+    document.getElementById("transfer-tab").classList.remove("active");
+});
+
+document.getElementById("transfer-tab").addEventListener("click", function () {
+    document.getElementById("manual-form").style.display = "none";
+    document.getElementById("transfer-form").style.display = "block";
+    this.classList.add("active");
+    document.getElementById("manual-tab").classList.remove("active");
+});
+
+// Close modal if clicking outside it
+window.addEventListener("click", function(event) {
+  const modal = document.getElementById("transactionModal");
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const selectBox = document.getElementById('tag');
+    const selectedContainer = document.getElementById('selected-tags-container');
+    const hiddenTagsInput = document.getElementById('hidden-tags');
+
+    let selectedTags = [];
+
+    // Handle selection
+    selectBox.addEventListener('change', function () {
+        const selectedValue = selectBox.value;
+
+        // Prevent duplicate selections
+        if (selectedTags.includes(selectedValue)) {
             return;
         }
 
-        const selectBox = editFormRow.querySelector('#tag-dropdown');
-        const selectedContainer = editFormRow.querySelector('#selected-tags-container');
-        const hiddenTagsInput = editFormRow.querySelector('#hidden-tags');
+        // Add to the selected tags list
+        if (selectedValue && selectedValue !== 'Select tags') {
+            selectedTags.push(selectedValue);
 
-        // Parse initial tags from hidden input
-        let selectedTags;
-        try {
-            selectedTags = hiddenTagsInput.value ? JSON.parse(hiddenTagsInput.value) : [];
-        } catch (e) {
-            console.error("Error parsing hidden tags input:", e);
-            selectedTags = [];
-        }
+            // Update the hidden input field
+            hiddenTagsInput.value = JSON.stringify(selectedTags);
 
-        function initializeSelectedTags() {
-            selectedContainer.innerHTML = ''; // Clear the container
-            selectedTags.forEach(tag => addTagToContainer(tag));
-            updateDropdownOptions();
-        }
-
-        function addTagToContainer(tagName) {
+            // Display selected tags
             const tagElement = document.createElement('div');
             tagElement.className = 'selected-tag';
-            tagElement.textContent = tagName;
+            tagElement.textContent = selectedValue;
+
+            // Add a remove button to each tag
+            const removeButton = document.createElement('span');
+            removeButton.textContent = ' ✕';
+            removeButton.className = 'remove-tag';
+            removeButton.addEventListener('click', function () {
+                // Remove tag from list
+                selectedTags = selectedTags.filter(tag => tag !== selectedValue);
+                hiddenTagsInput.value = JSON.stringify(selectedTags);
+                selectedContainer.removeChild(tagElement);
+            });
+
+            tagElement.appendChild(removeButton);
+            selectedContainer.appendChild(tagElement);
+
+            // Reset the select box to the default
+            selectBox.selectedIndex = 0;
+        }
+    });
+});
+document.addEventListener('DOMContentLoaded', function () {
+    const selectBoxTransfer = document.getElementById('tag-transfer');
+    const selectedContainerTransfer = document.getElementById('selected-tags-container-transfer');
+    const hiddenTagsInputTransfer = document.getElementById('hidden-tags-transfer');
+
+    let selectedTagsTransfer = [];
+
+    selectBoxTransfer.addEventListener('change', function () {
+        const selectedValue = selectBoxTransfer.value;
+
+        if (selectedTagsTransfer.includes(selectedValue)) {
+            return;
+        }
+
+        if (selectedValue && selectedValue !== 'Select tags') {
+            selectedTagsTransfer.push(selectedValue);
+            hiddenTagsInputTransfer.value = JSON.stringify(selectedTagsTransfer);
+
+            const tagElement = document.createElement('div');
+            tagElement.className = 'selected-tag';
+            tagElement.textContent = selectedValue;
 
             const removeButton = document.createElement('span');
             removeButton.textContent = ' ✕';
             removeButton.className = 'remove-tag';
             removeButton.addEventListener('click', function () {
-                selectedTags = selectedTags.filter(tag => tag !== tagName);
-                hiddenTagsInput.value = JSON.stringify(selectedTags);
-                selectedContainer.removeChild(tagElement);
-                updateDropdownOptions();
+                selectedTagsTransfer = selectedTagsTransfer.filter(tag => tag !== selectedValue);
+                hiddenTagsInputTransfer.value = JSON.stringify(selectedTagsTransfer);
+                selectedContainerTransfer.removeChild(tagElement);
             });
 
             tagElement.appendChild(removeButton);
-            selectedContainer.appendChild(tagElement);
-        }
+            selectedContainerTransfer.appendChild(tagElement);
 
-        function updateDropdownOptions() {
-            Array.from(selectBox.options).forEach(option => {
-                option.style.display = selectedTags.includes(option.value) ? 'none' : '';
-            });
-        }
-
-        selectBox.addEventListener('change', function () {
-            const selectedValue = selectBox.value;
-
-            if (selectedValue && !selectedTags.includes(selectedValue)) {
-                selectedTags.push(selectedValue);
-                hiddenTagsInput.value = JSON.stringify(selectedTags);
-                addTagToContainer(selectedValue);
-                updateDropdownOptions();
-                selectBox.selectedIndex = 0; // Reset dropdown
-            }
-        });
-
-        // Initialize selected tags for the current edit form
-        initializeSelectedTags();
-
-        const toggleEdit = (isEditing) => {
-            const cells = row.querySelectorAll('td');
-            cells.forEach(cell => {
-                cell.style.display = isEditing ? 'none' : '';
-            });
-
-            editFormRow.style.display = isEditing ? 'table-row' : 'none';
-        };
-
-        row.addEventListener('dblclick', () => toggleEdit(true));
-        const cancelButton = editFormRow.querySelector('.cancel-edit');
-        const deleteButton = editFormRow.querySelector('.delete-transaction');
-        const form = editFormRow.querySelector('form');
-        if (cancelButton) {
-            cancelButton.addEventListener('click', () => toggleEdit(false));
-        }
-        if (deleteButton) {
-            deleteButton.addEventListener('click', function(event) {
-                event.preventDefault();
-                if (form) { // Check if the form exists
-                    console.log("Form referenced by delete button:", form); 
-                    const deleteBoolean = form.elements['deleteBoolean'];
-                    if (deleteBoolean) {
-                        deleteBoolean.value = 'true'; // Set value
-                        console.log("deleteBoolean set to true");
-                    } else {
-                        console.error("deleteBoolean input not found in the form");
-                    }
-                    // Prevent default form submission
-                
-
-                    // Submit the form using JavaScript (optional)
-                    // You can uncomment the following lines to submit the form using JavaScript
-                    form.submit();
-                }
-            });
-        }
-            
-    });
-
-    const table = document.getElementById('transactions-table');
-    const searchBar = document.getElementById('search-bar');
-
-    // Search Functionality
-    searchBar.addEventListener('input', function () {
-        const query = searchBar.value.toLowerCase();
-        const rows = table.querySelectorAll('.record-row'); // Only target record-row
-
-        rows.forEach(row => {
-            const rowText = row.textContent.toLowerCase();
-            const editFormRow = row.nextElementSibling; // Corresponding edit-form row
-
-            // Show or hide record-row based on query
-            const shouldDisplay = rowText.includes(query);
-            row.style.display = shouldDisplay ? '' : 'none';
-
-            // Always hide the edit-form row
-            if (editFormRow && editFormRow.classList.contains('edit-form')) {
-                editFormRow.style.display = 'none';
-            }
-        });
-    });
-
-    // Sort Functionality
-    const headers = table.querySelectorAll('.sortable');
-    headers.forEach(header => {
-        header.addEventListener('click', function () {
-            const column = header.getAttribute('data-column');
-            const ascending = header.classList.toggle('ascending');
-
-            sortTableByColumn(table, column, ascending);
-        });
-    });
-
-    function sortTableByColumn(table, column, ascending) {
-        const tbody = table.querySelector('tbody');
-        const rows = Array.from(tbody.querySelectorAll('.record-row'));
-
-        const columnIndex = Array.from(headers).findIndex(h => h.getAttribute('data-column') === column);
-
-        rows.sort((a, b) => {
-            const aText = a.children[columnIndex]?.textContent.trim() || '';
-            const bText = b.children[columnIndex]?.textContent.trim() || '';
-
-            if (!isNaN(parseFloat(aText)) && !isNaN(parseFloat(bText))) {
-                return ascending
-                    ? parseFloat(aText) - parseFloat(bText)
-                    : parseFloat(bText) - parseFloat(aText);
-            }
-            return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
-        });
-
-        rows.forEach(row => {
-            const editFormRow = row.nextElementSibling;
-            tbody.appendChild(row); // Move the transaction row
-            if (editFormRow && editFormRow.classList.contains('edit-form')) {
-                tbody.appendChild(editFormRow); // Move its corresponding edit form row
-            }
-        });
-    }
-
-    const refreshButton = document.getElementById('refresh-transactions');
-    const transactionsTable = document.getElementById('transactions-table');
-
-    refreshButton.addEventListener('click', async function () {
-        // Show loading indication
-        refreshButton.textContent = "Refreshing...";
-        refreshButton.disabled = true;
-
-        try {
-            // Send POST request to refresh transactions
-            const response = await fetch('/api/refresh_transactions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    "X-CSRFToken": "{{ csrf_token }}"
-                },
-            });
-
-            const data = await response.json();
-
-            if (data.status === "success") {
-                // Refresh the page to display updated transactions
-                location.reload();
-            } else {
-                alert(data.message || "Failed to refresh transactions.");
-            }
-        } catch (error) {
-            console.error("Error refreshing transactions:", error);
-            alert("An error occurred while refreshing transactions.");
-        } finally {
-            // Reset button state
-            refreshButton.textContent = "Refresh Transactions";
-            refreshButton.disabled = false;
+            selectBoxTransfer.selectedIndex = 0;
         }
     });
 });
 
-    </script>
+document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('transactionForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
 
-    {% endblock %}
+    function correctDecimals(input) {
+        const value = parseFloat(input.value).toFixed(2);
+        input.value = value;
+    }
+  document.addEventListener('DOMContentLoaded', function () {
+      const form = document.getElementById('transferForm');
+      form.addEventListener('submit', function (event) {
+          if (!form.checkValidity()) {
+              event.preventDefault();
+               event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+      });
+  });
+
+  
+  async function addTransactionsWithFeedback() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.style.display = 'block';
+    loadingOverlay.querySelector('p').textContent = 'Adding transactions... Do not refresh or leave!';
+    loadingOverlay.querySelector('.spinner-border').style.display = 'block';
+
+    try {
+        const response = await fetch('/api/transactions');
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+            location.reload();
+        } else if (response.status === 202) {
+            loadingOverlay.querySelector('p').textContent = data.message || 'Waiting on bank data. Please try again shortly.';
+        } else {
+            loadingOverlay.querySelector('p').textContent = data.error || 'An error occurred while adding transactions.';
+            loadingOverlay.querySelector('.spinner-border').style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Transaction fetch error:', err);
+        loadingOverlay.querySelector('p').textContent = 'A network error occurred. Please try again.';
+        loadingOverlay.querySelector('.spinner-border').style.display = 'none';
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+  const addBankButton = document.getElementById("add-bankAccount-button");
+
+  addBankButton.addEventListener("click", async function (event) {
+    event.preventDefault(); 
+
+    const csrfToken = "{{ csrf_token }}";
+
+    fetch("/api/create_link_token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      const handler = Plaid.create({
+        token: data.link_token,
+        onSuccess: function (public_token, metadata) {
+          const statusDiv = document.getElementById('transactionStatus');
+          statusDiv.style.display = 'block';
+          statusDiv.style.color = 'red';
+          statusDiv.textContent = 'Adding transactions... Do not refresh or leave!';
+
+          fetch("/api/set_access_token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": csrfToken
+            },
+            body: JSON.stringify({
+              public_token: public_token
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log("Access token obtained:", data);
+            addTransactionsWithFeedback();
+          })
+          .catch(error => {
+            console.error("Error exchanging public token:", error);
+          });
+        },
+        onExit: function (err, metadata) {
+          if (err) {
+            console.error("Error during Link flow:", err);
+          }
+        }
+      });
+
+      handler.open();
+    })
+    .catch(error => {
+      console.error("Error fetching link token:", error);
+    });
+  });
+});
+
+</script>
+{% endblock %}

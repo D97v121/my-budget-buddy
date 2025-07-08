@@ -1,12 +1,12 @@
 import os
 import re
 import logging
-from flask import Flask, flash, redirect, render_template, request, session, url_for, jsonify, Response
+from flask import Flask, flash, redirect, render_template, request as flask_request, session, url_for, jsonify, Response
 from flask_session import Session
 from werkzeug.security import check_password_hash, generate_password_hash
 from decimal import Decimal, InvalidOperation
-from helpers import apology, login_required, lookup, usd, calculateAllMoney, calculateCategory, dollar, graph_records, timestamp_editor, exit_usd, cycle_through_money_table, delete_record, initialize_money_record, populate_tags
-from models import db, Give, Spend, Save, Invest, Money, Expense, User, Tags, TagColor, Note, Goal, PlaidItem, Transaction
+from helpers import apology, classify_transaction_amount, edit_transaction_name, login_required, lookup, usd, calculateAllMoney, calculateCategory, dollar, graph_records, timestamp_editor, exit_usd, cycle_through_money_table, delete_record, initialize_money_record, populate_tags
+from models import db, Give, Spend, Save, Invest, Money, Expense, User, Tags, TagColor, Note, Goal, PlaidItem, Transaction, transaction_tags
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime 
@@ -17,6 +17,7 @@ from openai import OpenAI
 from flask_login import current_user
 import locale
 from plaid.api_client import ApiClient
+from sqlalchemy import extract
 from dotenv import load_dotenv
 import plaid
 from plaid.api import plaid_api
@@ -99,6 +100,8 @@ from wtforms.validators import DataRequired
 import base64
 import json
 from cryptography.fernet import Fernet
+from sqlalchemy import func, case
+from collections import defaultdict
 from flask_talisman import Talisman
 
 
@@ -204,6 +207,10 @@ app.config["WTF_CSRF_ENABLED"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
 Session(app)
 
+print(f"Using Client ID: {PLAID_CLIENT_ID}")
+print(f"Using Secret: {PLAID_SECRET[:4]}...")  # for security, don't print full secret
+print(f"Using Environment: {PLAID_ENV}")
+
 limiter = Limiter(
     get_remote_address,  # Uses the client's IP address to limit requests
     app=app,  # Attach to the Flask app
@@ -246,14 +253,29 @@ def predict_transaction_category(transaction):
     Uses OpenAI API to categorize a transaction as Save, Spend, Give, Expense, or Invest.
     """
     logging.info(f"Categorizing transaction ID: {transaction.id} | Amount: {transaction.amount} | Bank: {transaction.bank_account}")
-
-    transaction_text = f"Transaction: {transaction.category}, Amount: {transaction.amount}, Tags: {transaction.tags}, Category: {transaction.category}, Bank: {transaction.bank_account}."
+    direction = "INFLOW" if transaction.amount > 0 else "OUTFLOW"
+    transaction_text = f"Transaction: {transaction.category}, Amount: {transaction.amount}, Tags: {transaction.tags}, Category: {transaction.category}, Bank: {transaction.bank_account}, Direction: {direction}."
     logging.debug(f"Generated transaction text: {transaction_text}")
     completion = openai_api_key.chat.completions.create(
         model="gpt-4o-mini",
-        store=True,
-        messages=[
-            {"role": "system", "content": "You categorize financial transactions into: Save, Spend, Give, Expense, or Invest. You MUST respond with ONLY one word, and nothing else. Do NOT include explanations."},
+        store=True, 
+        messages=[{
+            "role": "system",
+                "content": (
+                    "You are an expert financial assistant. You will categorize bank transactions "
+                    "into one of exactly five categories: Save, Spend, Give, Expense, or Invest.\n\n"
+                    "Definitions:\n"
+                    "- Save: incoming money set aside for future use (e.g., savings transfers)\n"
+                    "- Invest: money allocated for returns (e.g., stock purchases, brokerage transfers)\n"
+                    "- Give: charitable or personal giving (e.g., donations, gifts to others)\n"
+                    "- Expense: reacurring outgoing charges (don't assign this to a transaction unless you see a consistent monthy charge or it says 'subscription' in the name)\n"
+                    "- Spend: non-essential outgoing or discretionary purchases (e.g., restaurants, shopping). incoming transactions can also be put in the spend category when small amounts of money are added to a user's accountr\n\n"
+                    "RULES:\n"
+                    "- Respond with only ONE WORD: Save, Spend, Give, Expense, or Invest.\n"
+                    "- Do NOT include any explanation or punctuation.\n"
+                    "- If unclear, make your best guess."
+                )
+            },
             {"role": "user", "content": f"Categorize this transaction: {transaction_text}"}  
         ]
         )
@@ -307,15 +329,15 @@ def delete_data():
 
     return render_template('delete_data.html')
 
-    
-csrf = CSRFProtect(app)
+csrf = CSRFProtect()
 csrf.init_app(app)
+"""
 @app.before_request
 def set_csrf_token():
     if "csrf_token" not in session:
         session["csrf_token"] = generate_csrf()
         print("🔹 New CSRF Token Set:", session["csrf_token"])  # ✅ Debugging
-
+"""
 @app.route("/get_csrf_token", methods=["GET"])
 def get_csrf_token():
     return jsonify({"csrfToken": session["csrf_token"]})
@@ -424,25 +446,43 @@ def register():
 def profile_questions():
     if request.method == "POST":
         try:
-            categories = ['save', 'spend', 'give', 'invest', 'expense']
-            category = 'initial balance'
-            bank_name = 'manual input'
+            user_id = session.get('user_id')
+            if not user_id:
+                raise ValueError("User not logged in.")
 
-            for category in categories:
-                balance_key = f'starting_{category}_balance'
-                label = category
-                tag = category.capitalize()
-                money_str = request.form.get(balance_key)
+            user = User.query.get(user_id)
+            if not user:
+                raise ValueError("User not found.")
 
-                if money_str is None:
-                    raise ValueError(f"Starting balance for {category} is missing.")
+            # Get and validate percentages
+            save = request.form.get("save_income_percentage")
+            spend = request.form.get("spend_income_percentage")
+            give = request.form.get("give_income_percentage")
+            invest = request.form.get("invest_income_percentage")
+            expense = request.form.get("expense_income_percentage")
 
-                try:
-                    money = Decimal(money_str)
-                except InvalidOperation:
-                    raise ValueError(f"Invalid starting balance for {category}.")
+            if not all([save, spend, give, invest, expense]):
+                raise ValueError("All percentages must be provided.")
 
-                calculateCategory(db, Transaction, label, money, category, bank_name, tag)
+            try:
+                save = Decimal(save)
+                spend = Decimal(spend)
+                give = Decimal(give)
+                invest = Decimal(invest)
+                expense = Decimal(expense)
+            except InvalidOperation:
+                raise ValueError("Invalid percentage format.")
+
+            total = save + spend + give + invest + expense
+            if total != Decimal(100):
+                raise ValueError("Percentages must add up to 100.")
+
+            # Update user record
+            user.savePercentage = save
+            user.spendPercentage = spend
+            user.givePercentage = give
+            user.investPercentage = invest
+            user.expensePercentage = expense
 
             db.session.commit()
 
@@ -450,15 +490,14 @@ def profile_questions():
             logging.debug("Profile updated successfully")
 
             return redirect("/login")
-        
+
         except Exception as e:
             db.session.rollback()
             flash(str(e), "danger")
-            logging.debug("error")
+            logging.debug(f"Error: {e}")
             return render_template("profile_questions.html")
-        
-    else:
-        return render_template("profile_questions.html")
+
+    return render_template("profile_questions.html")
         
 @app.route('/print_access_tokens', methods=['GET'])
 @login_required
@@ -483,6 +522,7 @@ def print_access_tokens():
 @login_required
 def index():
     user_id=session.get("user_id")
+    user = User.query.get(user_id)
     form = TransactionForm()
 
     logging.debug("Index route accessed")
@@ -490,32 +530,40 @@ def index():
     category = request.form.get("category")
     division = request.form.get("division")
     form_id = request.form.get('form_id')
+    description = request.form.get('description')
 
-    selected_tags = request.form.get('tags[]')
+    if form_id == "transactionForm":
+        selected_tags = request.form.get('tags[]')
+    elif form_id == "transferForm":
+        selected_tags = request.form.get('tags_transfer[]')
+    else:
+        selected_tags = None
+    print("Raw selected_tags from form:", request.form.get('tags[]'))
     if selected_tags:
         selected_tags = json.loads(selected_tags)  # Convert JSON string back to list
-        logging.debug(f"Selected tags: {selected_tags}")
+        print("Parsed selected_tags (after JSON):", selected_tags)
         tag_objects = Tags.query.filter(Tags.name.in_(selected_tags)).all()
     else:
         logging.debug("No tags selected.")
         tag_objects = []
 
     if request.method == "POST":
+        amount = Decimal(request.form.get("recordedTransaction"))
         if form_id == 'transactionForm':
             label = request.form.get("division").lower() 
-            amount = Decimal(request.form.get("recordedTransaction"))
             bank_name = "manual input"
             logging.debug(f"Form submitted with category: {label}")
             try:
                 if label in model_map:
                     money = Decimal(request.form.get("recordedTransaction"))
                     category = request.form.get("category")
-                    calculateCategory(db, Transaction, label, money, category, bank_name, tag_objects, division)
+                    print(f"[calculateCategory] Tags being passed: {[tag.name for tag in tag_objects]}")
+                    calculateCategory(db, Transaction, label, money, category, bank_name, tag_objects, division, description=description)
                 else:
-                    calculateAllMoney(db, Transaction, tag, amount, category, tag_objects=tag_objects, date=dt.datetime.now(), bank_name=bank_name)
+                    calculateAllMoney(db, Transaction, money=amount, category=category, user=user, tag_objects=tag_objects, date=dt.datetime.now(), bank_name=bank_name, description=description)
                 db.session.commit()
                 logging.debug("Transaction committed successfully")
-                return redirect("/")
+                return redirect("/History")
             except Exception as e:
                 db.session.rollback()
                 logging.error(f"Transaction failed and rolled back: {e}")
@@ -527,16 +575,16 @@ def index():
             try:
                 if to_label in model_map and from_label in model_map:
                     money = Decimal(request.form.get("recordedTransaction"))
-                    category = request.form.get("category")
-                    calculateCategory(db, Transaction, to_label, money, category, bank_name, tag)
-                    calculateCategory(db, Transaction, from_label, -money, category, bank_name="none", tag=tag)
+                    print(f"[calculateCategory] Tags being passed: {[tag.name for tag in tag_objects]}")
+                    calculateCategory(db, Transaction, to_label, money, category, bank_name, tag_objects, division=to_label, description=description)
+                    calculateCategory(db, Transaction, from_label, -money, category, bank_name="none", tag_objects=tag_objects, division=from_label, description=description)
                 else:
-                    calculateAllMoney(db, Transaction, tag, amount, category, tag_objects=tag_objects, date=dt.datetime.now(), bank_name=bank_name)
+                    calculateAllMoney(db, Transaction, money=amount, category=category, user=user, tag_objects=tag_objects, date=dt.datetime.now(), bank_name=bank_name, description=description)
                     money = Decimal(request.form.get("recordedTransaction"))
-                    calculateCategory(db, Transaction, from_label, -money, category, bank_name, tag)
+                    calculateCategory(db, Transaction, from_label, -money, category, bank_name, tag_objects, description=description)
                 db.session.commit()
                 logging.debug("Transaction committed successfully")
-                return redirect("/")
+                return redirect("/History")
             except Exception as e:
                 db.session.rollback()
                 logging.error(f"Transaction failed and rolled back: {e}")
@@ -544,9 +592,44 @@ def index():
         else:
             print("error")
 
-    left_in_spend = moneyTable.spend if moneyTable else 0
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+
+    left_in_spend = db.session.query(func.sum(Transaction.amount))\
+        .filter_by(user_id=user_id, division='spend')\
+        .filter(Transaction.amount > 0)\
+        .filter(extract('year', Transaction.date) == current_year)\
+        .filter(extract('month', Transaction.date) == current_month)\
+        .scalar() or 0 
+
+    totalSave = db.session.query(func.sum(Transaction.amount))\
+        .filter_by(user_id=user_id, division='save')\
+        .filter(extract('year', Transaction.date) == current_year)\
+        .filter(extract('month', Transaction.date) == current_month)\
+        .scalar() or 0
+
+    totalGive = db.session.query(func.sum(Transaction.amount))\
+        .filter_by(user_id=user_id, division='give')\
+        .filter(extract('year', Transaction.date) == current_year)\
+        .filter(extract('month', Transaction.date) == current_month)\
+        .scalar() or 0
+
+    totalInvest = db.session.query(func.sum(Transaction.amount))\
+        .filter_by(user_id=user_id, division='invest')\
+        .filter(extract('year', Transaction.date) == current_year)\
+        .filter(extract('month', Transaction.date) == current_month)\
+        .scalar() or 0
+
+    total_spend = db.session.query(func.sum(func.abs(Transaction.amount)))\
+        .filter_by(user_id=user_id, division='spend')\
+        .filter(extract('year', Transaction.date) == current_year)\
+        .filter(extract('month', Transaction.date) == current_month)\
+        .scalar() or 0
     spend_tag_color = Tags.query.filter_by(user_id=user_id, name='Spend').first()
     spending_color = spend_tag_color.color_id if spend_tag_color else '#BBA2C8'
+
+    
     
     logging.debug(f"Spend tag color from DB: {spending_color}")
 
@@ -570,37 +653,107 @@ def index():
     colors = [details['color'] for details in tag_details.values()]
     counts = [details['count'] for details in tag_details.values()]
     tag_names = [tag if tag else 'none' for tag in tag_details.keys()]
+
+    plaid_items = PlaidItem.query.filter_by(user_id=user_id).all()
+
+    # ✅ Add account balances
+    account_balances = []
+    for item in plaid_items:
+        access_token = item.access_token
+        accounts = client.accounts_get(AccountsGetRequest(access_token=access_token)).to_dict()['accounts']
+        for acct in accounts:
+            account_balances.append({
+                'name': acct['name'],
+                'available': acct['balances']['available'],
+                'current': acct['balances']['current'],
+                'currency': acct['balances']['iso_currency_code']
+            })
     
-    return render_template("index.html", form=form, moneyTable=moneyTable, left_in_spend=left_in_spend, category=category, tags_list=tags_list, colors=colors, counts=counts, tag_names=tag_names, spending_color=spending_color)
+    now = datetime.now()
+    current_year = now.year
+    current_month = now.month
+    money_gained_this_month = db.session.query(func.sum(Transaction.amount))\
+        .filter(
+            Transaction.user_id == user_id,
+            Transaction.amount > 0,
+            extract('year', Transaction.date) == current_year,
+            extract('month', Transaction.date) == current_month
+        ).scalar() or 0
+    money_lost_this_month = db.session.query(func.sum(Transaction.amount))\
+        .filter(
+            Transaction.user_id == user_id,
+            Transaction.amount < 0,
+            extract('year', Transaction.date) == current_year,
+            extract('month', Transaction.date) == current_month
+        ).scalar() or 0
+    
+    has_linked_account = len(account_balances) > 0
+    has_spend_transaction = Transaction.query.filter_by(user_id=user_id, division='spend').first() is not None
+
+    show_graphs = has_linked_account or has_spend_transaction
+    show_link_section = not show_graphs
+        
+    return render_template("index.html", show_graphs=show_graphs, show_link_section=show_link_section, form=form, account_balances=account_balances, moneyTable=moneyTable, left_in_spend=left_in_spend, category=category, tags_list=tags_list, colors=colors, counts=counts, tag_names=tag_names, spending_color=spending_color, total_spend=total_spend, totalSave=totalSave, totalGive=totalGive, totalInvest=totalInvest, money_gained_this_month=money_gained_this_month,
+    money_lost_this_month=money_lost_this_month)
 
 
 @app.route('/Tracking', methods=["GET", "POST"])
 @login_required
 def tracking():
-    user_id=session.get("user_id")
-    money_record = initialize_money_record(db)
-    cycle_through_money_table(db, money_record)
-    
-    moneyTable = Money.query.filter_by(user_id=user_id).first()
-    save = moneyTable.save if moneyTable else 0
-    spend = moneyTable.spend if moneyTable else 0
-    give = moneyTable.give if moneyTable else 0
-    invest = moneyTable.invest if moneyTable else 0
-    expense = moneyTable.expense if moneyTable else 0
+    user_id = session.get("user_id")
 
-    save_float, save_dates = graph_records(Save)
-    spend_float, spend_dates = graph_records(Spend)
-    give_float, give_dates = graph_records(Give)
-    invest_float, invest_dates = graph_records(Invest)
-    expense_float, expense_dates = graph_records(Expense)
+    # Aggregate totals for each division
+    totals = db.session.query(
+        Transaction.division,
+        func.sum(Transaction.amount)
+    ).filter_by(user_id=user_id).group_by(Transaction.division).all()
+
+    total_dict = defaultdict(float, {division.lower(): amount for division, amount in totals})
+
+    unique_dates_count = db.session.query(
+        func.count(func.distinct(func.strftime('%Y-%m-%d', Transaction.date)))
+    ).filter(Transaction.user_id == user_id).scalar()
+
+    date_format = "%Y-%m-%d" if unique_dates_count <= 30 else "%Y-%m"
+
+    # Get time-series data for graphs
+    def get_graph_data_for_division(division_name):
+        results = db.session.query(
+            func.strftime(date_format, Transaction.date).label('period'),
+            func.sum(Transaction.amount)
+        ).filter_by(user_id=user_id, division=division_name)\
+         .group_by('period').order_by('period').all()
+
+        running_total = 0
+        dates = []
+        values = []
+
+        for period, amount in results:
+            running_total += amount
+            dates.append(period)
+            values.append(running_total)
+
+        return values, dates
+
+    save_float, save_dates = get_graph_data_for_division("save")
+    spend_float, spend_dates = get_graph_data_for_division("spend")
+    give_float, give_dates = get_graph_data_for_division("give")
+    invest_float, invest_dates = get_graph_data_for_division("invest")
+    expense_float, expense_dates = get_graph_data_for_division("expense")
+
+    print(spend_float, spend_dates)
 
     return render_template('Tracking.html',
-                       save_data=save_float, save_dates=save_dates,
-                       spend_data=spend_float, spend_dates=spend_dates,
-                       give_data=give_float, give_dates=give_dates,
-                       invest_data=invest_float, invest_dates=invest_dates,
-                       expense_data=expense_float, expense_dates=expense_dates, save=dollar(save), spend=dollar(spend), give=dollar(give), invest=dollar(invest), expense=dollar(expense))
-
+                           save_data=save_float, save_dates=save_dates,
+                           spend_data=spend_float, spend_dates=spend_dates,
+                           give_data=give_float, give_dates=give_dates,
+                           invest_data=invest_float, invest_dates=invest_dates,
+                           expense_data=expense_float, expense_dates=expense_dates,
+                           save=usd(total_dict["save"]),
+                           spend=usd(total_dict["spend"]),
+                           give=usd(total_dict["give"]),
+                           invest=usd(total_dict["invest"]),
+                           expense=usd(total_dict["expense"]))
 
 @app.route('/Settings', methods=["GET", "POST"])
 @login_required
@@ -614,15 +767,22 @@ def history():
     csrf_token=generate_csrf()
     print(f"Fetching history for user_id: {user_id}")
     
+    user_id=session.get("user_id")
+    form = TransactionForm()
+
+    
     tags_list = Tags.query.filter_by(user_id=user_id).all()
     print(f"Retrieved {len(tags_list)} tags for user_id: {user_id}")
     
     divisions_list = ['none', 'general', 'save', 'spend', 'give', 'invest', 'expense']
     
-    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.date).all()
-    print(f"Retrieved {len(transactions)} transactions for user_id: {user_id}")
- 
-    return render_template("history.html", transactions=transactions, tags_list=tags_list, divisions_list=divisions_list, csrf_token=csrf_token)
+    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp).all()
+    print("Transaction timestamps in order:")
+    for txn in transactions:
+        print(f"{txn.id}: {txn.timestamp} — {txn.name}")
+
+    
+    return render_template("history.html", transactions=transactions, tags_list=tags_list, divisions_list=divisions_list, csrf_token=csrf_token, form=form)
 
 @app.route('/invest_history', methods=["GET", "POST"])
 @login_required
@@ -783,7 +943,6 @@ def tags():
             tag_status_field = f'tagStatus_{tag_id}'
             tag.status = tag_status_field in request.form
             db.session.commit()
-        
         # Add new tag if it exists in the form
         if request.form.get('tagName_new'):
             new_tag = Tags(
@@ -1041,7 +1200,7 @@ def fetch_transactions():
         return redirect(url_for('login'))  # Redirect if not logged in
 
     # Query the database for transactions belonging to the user
-    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.date.desc()).all()
+    transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
     print(f"Retrieved {len(transactions)} transactions for user_id: {user_id}")
     
     transaction = Transaction.query.filter_by(id=11).first()
@@ -1062,26 +1221,27 @@ def fetch_transactions():
     # Pass transactions to the template
     return render_template('fetch_transactions.html', transactions=transactions, tags_list=tags_list)
 
-
 @app.route('/update_transaction/<int:transaction_id>', methods=['POST'])
 @login_required
 def update_transaction(transaction_id):
     if request.method == "POST":
         logging.debug(f"Form data received: {request.form}")
         user_id = session.get('user_id')
+
         transaction = Transaction.query.filter_by(id=transaction_id, user_id=user_id).first_or_404()
 
+        tags_json = request.form.get("tags")
         try:
-            tags_from_form = json.loads(request.form.get("tags", "[]"))
-        except json.JSONDecodeError:
-            tags_from_form = []
+            tag_names = json.loads(tags_json)
+        except (TypeError, json.JSONDecodeError):
+            tag_names = []
 
         
         # Existing tags
         existing_tags = {tag.name for tag in transaction.tags}
 
         # Combine new and existing tags
-        all_tags = set(tags_from_form).union(existing_tags)
+        all_tags = set(tag_names).union(existing_tags)
 
         division = request.form.get('division')
         if division == "none" or not division:  # Only categorize if empty
@@ -1093,6 +1253,9 @@ def update_transaction(transaction_id):
         deleteBoolean = request.form.get('deleteBoolean')
         date = request.form.get('date')
         category = request.form.get('category')
+        time = request.form.get('time')
+        name = request.form.get('name')
+        note= request.form.get('note')
         logging.debug(f"tag: {tags}, amount: {amount}, bank_name: {bank_name}, deleteBoolean: {deleteBoolean}, division: {division}, date: {date}")
         date_str = request.form.get('date')  # Example: '01/02/2025'
         if date_str:
@@ -1122,7 +1285,8 @@ def update_transaction(transaction_id):
             return redirect(url_for('history'))
         if division == "general":
             tag_objects = Tags.query.filter(Tags.name.in_(all_tags)).all()
-            calculateAllMoney(db, Transaction, tag_objects, money=amount, date=date, bank_name=bank_name, category=category)
+            user = User.query.get(user_id)
+            calculateAllMoney(db, Transaction, tag_objects=tag_objects, money=amount, date=date, bank_name=bank_name, category=category, user=user)
             
             # Fetch the current transaction and delete it after calculation
             record = Transaction.query.filter_by(id=transaction_id, user_id=user_id).first()
@@ -1133,17 +1297,29 @@ def update_transaction(transaction_id):
             else:
                 logging.error(f"Transaction ID {transaction_id} not found.")
             return redirect(url_for('history'))
-            
+        
+        time_str = request.form.get('time')
+        try:
+            # If you're just collecting a time like "14:30", combine it with today's date
+            time = datetime.combine(date.date(), datetime.strptime(time_str, '%H:%M').time())
+        except (ValueError, TypeError) as e:
+            logging.warning(f"Invalid time format received: {time_str}, error: {e}")
+            time = datetime.now()
+
         
         record = Transaction.query.filter_by(id=record_id, user_id=user_id).first_or_404()
-
+        print(f"Parsed time: {time}, name: {name}, note: {note}")
         try:
             record.amount = float(amount)
             record.bank_name = bank_name
             record.division = division
+            record.timestamp = time
+            record.date = date
+            record.name = name
+            record.note = note
             record.tags.clear()  # Clear existing tags
             transaction.tags.clear()
-            for tag_name in tags_from_form:
+            for tag_name in tag_names:
                 tag = Tags.query.filter_by(name=tag_name, user_id=user_id).first()
                 if tag:
                     transaction.tags.append(tag)
@@ -1377,7 +1553,7 @@ def set_access_token():
             transactions_data = transactions_response.get_json()
         else:
             transactions_data = transactions_response 
-
+        print(f"type of transactions_data: {type(transactions_data)}")
         return jsonify({
             "access_token": access_token,
             "item_id": item_id,
@@ -1390,7 +1566,6 @@ def set_access_token():
     except Exception as e:
         logging.error(f"Unexpected Error: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
-
 
 # Retrieve ACH or ETF account numbers for an Item
 # https://plaid.com/docs/#auth
@@ -1471,95 +1646,114 @@ def delete_all_plaid_items():
 
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
-    # Set cursor to empty to receive all historical updates
-
-    # New transaction updates since "cursor"
     all_added = []
     all_modified = []
     all_removed = []
     new_transactions_count = 0
     duplicate_transactions_count = 0
-    try:
-        # Get the user ID from the session
-        user_id = session.get('user_id')
-        if not user_id:
-            logging.warning("Attempted access to /api/transactions without being logged in.")
-            return jsonify({"error": "User not logged in"}), 401
-        logging.debug(f"User ID from session: {user_id}")
+    print("==> Entered /api/transactions route")
 
-        # Fetch all access tokens for the user
+    try:
+        user_id = session.get('user_id')
+        print(f"==> Retrieved user_id: {user_id}")
+        if not user_id:
+            print("==> No user_id in session")
+            return jsonify({"error": "User not logged in"}), 401
+
+        item_id_filter = flask_request.args.get('item_id')
+        accounts_map = {}
         plaid_items = PlaidItem.query.filter_by(user_id=user_id).all()
+        if item_id_filter:
+            plaid_items = [item for item in plaid_items if item.item_id == item_id_filter]
+            print(f"==> Filtering to Plaid item: {item_id_filter}")
+        print(f"==> Retrieved {len(plaid_items)} Plaid items for user {user_id}")
         if not plaid_items:
-            logging.warning(f"No Plaid items found for user {user_id}.")
+            print("==> No Plaid items found")
             return jsonify({"error": "No access tokens found for user"}), 400
 
-        logging.debug(f"Found {len(plaid_items)} Plaid items for user {user_id}.")
-        
-
-        # Iterate through each account and fetch transactions
         for plaid_item in plaid_items:
             access_token = plaid_item.access_token
-            logging.debug(f"Found access token: {access_token}")
             cursor = plaid_item.cursor or ''
-            # Get accounts for the current access_token
+            print(f"==> Starting sync for access_token {access_token[:6]}..., cursor: {cursor}")
+
             bank_name = fetch_institution_name(access_token)
-            account_details = get_accounts(access_token)  # Corrected function call
+            account_details = get_accounts(access_token)
+            print(f"==> Got account details for access_token {access_token[:6]}")
 
             if account_details is None:
-                logging.warning(f"No accounts found for access token {access_token[:6]}...")
-                continue  # Skip to the next item if no accounts are found
+                print(f"==> No accounts found for access token {access_token[:6]}")
+                continue
 
-            # Store accounts in a dictionary for quick lookups
-            accounts_map = {
+            new_accounts = {
                 account['account_id']: {
-                    "account_name": account['name'],  # Account name (e.g., "Checking")
-                    "bank_name": bank_name            # Bank name (e.g., "Chase")
+                    "account_name": account['name'],
+                    "bank_name": bank_name,
+                    "subtype": account.get('subtype', '').lower()
                 }
                 for account in account_details['accounts']
             }
-            has_more = True
+            accounts_map.update(new_accounts)
 
+            has_more = True
             while has_more:
-                logging.debug(f"Fetching transactions for access token {plaid_item.access_token[:6]} with cursor: {cursor or 'initial sync'}")
-                
+                print(f"==> Fetching transactions with cursor: {cursor}")
                 try:
                     request = TransactionsSyncRequest(
                         access_token=plaid_item.access_token,
                         cursor=cursor,
                     )
                     response = client.transactions_sync(request).to_dict()
-                    
-                    # Update cursor and save to the database
+                    print(f"==> Raw sync response: {response}")
+
+                    # Handle "NOT_READY" case
+                    if response.get('transactions_update_status') == 'NOT_READY':
+                        print("==> Transactions not ready yet.")
+                        return jsonify({"status": "pending", "message": "Transactions not ready yet."}), 202
+
                     cursor = response.get('next_cursor', '')
                     plaid_item.cursor = cursor
                     db.session.add(plaid_item)
-                    
-                    has_more = response.get('has_more', False)
 
-                    # Process transactions
+                    has_more = response.get('has_more', False)
                     all_added.extend(response.get('added', []))
                     all_modified.extend(response.get('modified', []))
                     all_removed.extend(response.get('removed', []))
-                
+
                 except ApiException as e:
-                    logging.error(f"Plaid API error: {e}")
+                    print(f"==> Plaid API error: {e}")
                     raise
             db.session.commit()
+            print(f"==> Committed updated cursor for {access_token[:6]}")
 
-        # Save new transactions to the database
         for transaction in all_added:
+            print(f"==> Processing transaction: {transaction['transaction_id']}")
             account_id = transaction.get('account_id')
             account_info = accounts_map.get(account_id, {})
-            account_name = account_info.get("account_name", "Unknown Account")  # Extract the account name
-            bank_name = account_info.get("bank_name", "Unknown Bank")  # Extract the bank name
+            account_name = account_info.get("account_name", "Unknown Account")
+            bank_name = account_info.get("bank_name", "Unknown Bank")
+            account_subtype = account_info.get("subtype", "checking")
+            raw_datetime = transaction.get("datetime")
+            if raw_datetime:
+                timestamp_str = str(raw_datetime)
+            else:
+                date_str = transaction.get("date", "")
+                timestamp_str = f"{date_str}T12:00:00"
+
+            try:
+                parsed_timestamp = datetime.fromisoformat(timestamp_str)
+            except Exception as e:
+                print(f"==> Timestamp parse failed: {timestamp_str}, error: {e}")
+                parsed_timestamp = datetime.utcnow()
 
             txn_id = transaction['transaction_id']
             existing_transaction = Transaction.query.filter_by(transaction_id=txn_id).first()
-            
+
             if not existing_transaction:
                 categories = transaction.get('category', [])
                 if isinstance(categories, str):
                     categories = [categories]
+                if categories is None:
+                    categories = []
                 categories = [cat.strip() for cat in categories if cat.strip()]
 
                 tag_objects = []
@@ -1568,23 +1762,44 @@ def get_transactions():
                     if not tag:
                         tag = Tags(name=category, user_id=user_id)
                         db.session.add(tag)
-                        db.session.commit()  # Commit to generate the tag ID
+                        db.session.commit()
                     tag_objects.append(tag)
+
+                category = ', '.join(categories)
+                amount = classify_transaction_amount(transaction)
+
+                temp_transaction = Transaction(
+                    user_id=user_id,
+                    transaction_id=txn_id,
+                    name=transaction["name"],
+                    amount=amount,
+                    bank_account=account_name,
+                    bank_name=bank_name,
+                    pending=transaction.get("pending", False),
+                    date=parsed_timestamp.date(),
+                    timestamp=parsed_timestamp
+                )
+
+                predicted_category = predict_transaction_category(temp_transaction)
+                print(f"==> Predicted category: {predicted_category}")
 
                 new_transaction = Transaction(
                     user_id=user_id,
                     transaction_id=txn_id,
                     date=transaction['date'],
-                    name=transaction['name'],
-                    category=', '.join(categories),
-                    amount=transaction['amount'],
+                    timestamp=parsed_timestamp,
+                    name=edit_transaction_name(transaction["name"]),
+                    division=predicted_category,
+                    category=category,
+                    amount=amount,
                     account_id=account_id,
                     bank_account=account_name,
                     bank_name=bank_name,
+                    item_id=plaid_item.item_id,
                     pending=transaction.get('pending', False)
                 )
                 db.session.add(new_transaction)
-                db.session.commit()  # Commit to assign the transaction ID
+                db.session.commit()
 
                 with db.session.no_autoflush:
                     for tag in tag_objects:
@@ -1593,17 +1808,16 @@ def get_transactions():
 
                 new_transactions_count += 1
             else:
+                print(f"==> Duplicate transaction found: {txn_id}")
                 duplicate_transactions_count += 1
 
         db.session.commit()
-        logging.info(f"Committed {new_transactions_count} new transactions to the database.")
+        print(f"==> Committed {new_transactions_count} new transactions")
 
-        # Fetch and combine all transactions across all accounts
-        all_transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.date.desc()).all()
+        all_transactions = Transaction.query.filter_by(user_id=user_id).order_by(Transaction.timestamp.desc()).all()
+        print(f"==> Total transactions fetched: {len(all_transactions)}")
         for transaction in all_transactions:
             print(f"Transaction ID: {transaction.transaction_id}, Amount: {transaction.amount}")
-        
-        logging.debug(f"Fetched {len(all_transactions)} total transactions for user {user_id}.")
 
         recent_transactions_list = [
             {
@@ -1613,8 +1827,8 @@ def get_transactions():
                 "category": txn.category,
                 "amount": txn.amount
             }
-            for txn in all_transactions[:10]  # Ensure transactions are objects, not Response
-]
+            for txn in all_transactions[:10]
+        ]
 
         return jsonify({
             "status": "success",
@@ -1624,12 +1838,13 @@ def get_transactions():
         })
 
     except ApiException as e:
-        logging.error(f"Plaid API Exception: {e}")
+        print(f"==> Caught Plaid ApiException: {e}")
         error_response = format_error(e)
         return jsonify(error_response), 500
     except Exception as e:
-        logging.error(f"Unexpected Error: {e}", exc_info=True)
+        print(f"==> Caught general exception: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/refresh_transactions', methods=['POST'])
 @login_required
@@ -1709,7 +1924,90 @@ def get_accounts(access_token):
     except ApiException as e:
         logging.error(f"Plaid API error while fetching accounts: {e}")
         return None
+    
+@app.route('/bank_accounts')
+@login_required
+def bank_accounts():
+    user_id = session.get('user_id')
+    plaid_items = PlaidItem.query.filter_by(user_id=user_id).all()
 
+    accounts_data = []
+    for item in plaid_items:
+        access_token = item.access_token
+        institution_name = fetch_institution_name(access_token)
+        institution_logo_url = get_institution_logo_url(access_token)  # You'll need to implement this or use a default
+        account_id = item.id  # or use a unique slug if you have one
+
+        accounts_data.append({
+            "id": account_id,
+            "name": institution_name,
+            "logo_url": institution_logo_url or url_for('static', filename='images/default-bank.png'),
+        })
+
+    return render_template("bank_accounts.html", accounts=accounts_data)
+
+@app.route('/delete_bank_account/<int:plaid_item_id>', methods=["POST"])
+@login_required
+def delete_bank_account(plaid_item_id):
+    user_id = session.get("user_id")
+
+    # Find the Plaid item
+    item = PlaidItem.query.filter_by(id=plaid_item_id, user_id=user_id).first_or_404()
+
+    # Delete all related transactions
+    deleted = Transaction.query.filter_by(item_id=item.item_id, user_id=user_id).delete()
+    print(f"Deleted {deleted} transactions")
+    # Delete the item itself
+    db.session.delete(item)
+    db.session.commit()
+
+    flash("Bank account and all associated transactions have been deleted.", "success")
+    return redirect(url_for("bank_accounts"))
+
+
+@app.route('/accounts/<int:item_id>')
+@login_required
+def account_detail(item_id):
+    user_id = session.get('user_id')
+
+    # Get the PlaidItem
+    plaid_item = PlaidItem.query.filter_by(id=item_id, user_id=user_id).first_or_404()
+
+    # Pull account_ids associated with this item
+    # Ideally, you already have a cached list of accounts somewhere.
+    # But if not, you'll need to hit Plaid again to fetch account_ids for this item.
+    access_token = plaid_item.decrypted_access_token
+    account_data = get_accounts(access_token)
+
+    if not account_data:
+        return "Could not retrieve accounts", 500
+
+    item_account_ids = [acct["account_id"] for acct in account_data["accounts"]]
+
+    # Now query transactions based on matching account_ids
+    transactions = Transaction.query \
+        .filter(Transaction.account_id.in_(item_account_ids), Transaction.user_id == user_id) \
+        .order_by(Transaction.timestamp.desc()) \
+        .all()
+
+    return render_template("account_detail.html", item=plaid_item, transactions=transactions)
+
+def get_institution_logo_url(access_token):
+    try:
+        request = ItemGetRequest(access_token=access_token)
+        item_response = client.item_get(request).to_dict()
+        institution_id = item_response["item"].get("institution_id")
+
+        if institution_id:
+            inst_request = InstitutionsGetByIdRequest(
+                institution_id=institution_id,
+                country_codes=[CountryCode('US')]
+            )
+            institution = client.institutions_get_by_id(inst_request).to_dict()
+            return institution["institution"].get("logo")
+    except Exception as e:
+        logging.warning(f"Could not fetch logo: {e}")
+        return None
 
 # Create and then retrieve an Asset Report for one or more Items. Note that an
 # Asset Report can contain up to 100 items, but for simplicity we're only
@@ -2084,3 +2382,194 @@ def delete_user_data():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+    
+"""delete everything below before pushing"""
+@app.route('/api/refresh_categories', methods=['POST'])
+@login_required
+def refresh_categories():
+    try:
+        user_id = session.get("user_id")
+        if not user_id:
+            return jsonify({"status": "error", "message": "User not logged in"}), 401
+
+        transactions = Transaction.query.filter_by(user_id=user_id).all()
+        updated_count = 0
+
+        for txn in transactions:
+            new_division = predict_transaction_category(txn)
+            txn.division = new_division
+            db.session.add(txn)
+            updated_count += 1
+
+        db.session.commit()
+        return jsonify({
+            "status": "success",
+            "message": f"Updated categories for {updated_count} transactions."
+        }), 200
+
+    except Exception as e:
+        logging.error(f"Error refreshing categories: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({"status": "error", "message": "Failed to refresh categories."}), 500
+    
+@app.route('/graphs_data')
+@login_required
+def graphs_data():
+    user_id = session.get("user_id")
+    now = datetime.now()
+    this_month = now.strftime('%Y-%m')
+    def sum_for_category(filter_):
+        return db.session.query(func.sum(Transaction.amount))\
+            .filter(Transaction.user_id == user_id)\
+            .filter(filter_)\
+            .scalar() or 0
+
+    # Monthly spending by division
+    division_data_monthly = db.session.query(
+        Transaction.division,
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == user_id,
+        func.strftime('%Y-%m', Transaction.date) == this_month
+    ).group_by(Transaction.division).all()
+
+    # Tag spending
+    tag_data = db.session.query(
+        Tags.name,
+        func.sum(Transaction.amount).label('total')
+    ).select_from(Tags)\
+     .join(transaction_tags, Tags.id == transaction_tags.c.tag_id)\
+     .join(Transaction, Transaction.id == transaction_tags.c.transaction_id)\
+     .filter(Tags.user_id == user_id)\
+     .group_by(Tags.name).all()
+
+    # Monthly cash flow
+    monthly_flow = db.session.query(
+        func.strftime('%Y-%m', Transaction.date).label('month'),
+        func.sum(Transaction.amount).label('net_flow')
+    ).filter(Transaction.user_id == user_id)\
+     .group_by('month').order_by('month').all()
+
+    # Cumulative division over time
+    cumulative = db.session.query(
+        Transaction.division,
+        func.strftime('%Y-%m', Transaction.date).label('month'),
+        func.sum(Transaction.amount).label('total')
+    ).filter(Transaction.user_id == user_id)\
+     .group_by(Transaction.division, 'month').order_by('month').all()
+
+    
+    # You could map your categories/tags to fixed/flexible
+    fixed_total = 1200  # mock
+    flexible_total = 600  # mock
+
+
+    
+
+    # Income vs expense per month (positive vs negative transactions)
+    income_expense_raw = db.session.query(
+        func.strftime('%Y-%m', Transaction.date).label('month'),
+        func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0)).label('income'),
+        func.sum(case((Transaction.amount < 0, Transaction.amount), else_=0)).label('expense')
+    ).filter(Transaction.user_id == user_id)\
+    .group_by('month').order_by('month').all()
+    income_expense = [
+        {
+            'month': m,
+            'income': i,
+            'expense': e
+        } for m, i, e in income_expense_raw
+    ]
+
+     # Spending vs budget by category (mock budgets)
+    budget_data = db.session.query(
+        Transaction.category,
+        func.strftime('%Y-%m', Transaction.date).label('month'),
+        func.sum(Transaction.amount).label('actual')
+    ).filter(
+        Transaction.user_id == user_id,
+        Transaction.amount < 0
+    ).group_by('month', Transaction.category).all()
+
+    mock_budgets = {
+        'food': -500,
+        'rent': -1200,
+        'entertainment': -200,
+        'utilities': -150
+    }
+    heatmap_data = [
+        {'day': day, 'total': (day * 3) % 100}
+        for day in range(1, 31)
+    ]
+
+    spend_budget = []
+    for cat, month, actual in budget_data:
+        spend_budget.append({
+            'category': cat,
+            'month': month,
+            'actual': actual,
+            'budget': mock_budgets.get(cat, 0)
+        })
+
+    # Savings progress over time
+    savings_over_time = db.session.query(
+        func.strftime('%Y-%m', Transaction.date).label('month'),
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == user_id,
+        Transaction.division == 'save'
+    ).group_by('month').order_by('month').all()
+
+    # Spending by bank account
+    account_spend = db.session.query(
+        Transaction.bank_name,
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == user_id,
+        Transaction.amount < 0
+    ).group_by(Transaction.bank_name).all()
+
+    # Recurring subscriptions (mock detection)
+    subscriptions = db.session.query(
+        Transaction.name,
+        func.sum(Transaction.amount).label('total')
+    ).filter(
+        Transaction.user_id == user_id,
+        Transaction.category.ilike('%subscription%')
+    ).group_by(Transaction.name).all()
+
+    # Cash flow waterfall
+    income = sum_for_category(Transaction.amount > 0)
+    taxes = sum_for_category(Transaction.category.ilike('%tax%'))
+    rent = sum_for_category(Transaction.category.ilike('%rent%'))
+    food = sum_for_category(Transaction.category.ilike('%food%'))
+    savings = sum_for_category(Transaction.division == 'save')
+    other = income - abs(taxes) - abs(rent) - abs(food) - abs(savings)
+
+
+    return jsonify({
+        'division_breakdown_month': [{'division': d, 'total': t} for d, t in division_data_monthly],
+        'tag_breakdown': [{'tag': t, 'total': amt} for t, amt in tag_data],
+        'monthly_flow': [{'month': m, 'net_flow': f} for m, f in monthly_flow],
+        'cumulative': [{'division': d, 'month': m, 'total': t} for d, m, t in cumulative],
+        'cash_flow_waterfall': {
+            'categories': ['Income', 'Taxes', 'Rent', 'Food', 'Savings', 'Other'],
+            'values': [income, -abs(taxes), -abs(rent), -abs(food), -abs(savings), -abs(other)]
+        },
+        'goal_progress': {
+            'target': 2000,  # Replace with goal query
+            'current': savings  # Assuming savings division sum is progress
+        },
+        'income_expense': income_expense,
+        'heatmap': heatmap_data,
+        'spend_budget': spend_budget,
+        'savings_over_time': [{'month': m, 'total': t} for m, t in savings_over_time],
+        'account_spend': [{'bank': b or 'Unknown', 'total': t} for b, t in account_spend],
+        'subscriptions': [{'name': n, 'total': t} for n, t in subscriptions],
+    })
+
+@app.route('/graph_experimentation')
+@login_required
+def graph_experimentation():
+    return render_template('graph_experimentation.html')
+

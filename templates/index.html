@@ -2,23 +2,23 @@
 
 {% block body %}
 
-<!-- Main Content -->
-<div class="parallax-section">
-  <div class="parallax-background">
-    <img src="static/scales_background.jpeg" alt="Company Logo" class="p_background_img" >
-  </div>
-  <div class="parallax-content">
-    <h1 class="hero-title">Track Your Finances</h1>
-    <p class="hero-subtitle">Simple Stewardship</p>
-    <form id="plaidForm" action="/api/create_link_token" method="POST">
-      {{ form.hidden_tag() }}  <!-- ✅ Flask-WTF automatically includes CSRF token -->
-      <button type="submit" id="link-button" class="hero-btn">Link Accounts</button>
-    </form>
-  
-  </div>
+{% if show_graphs %}
+<div class="account-balances container mt-4">
+  <h2 class="mb-3">Account Balances</h2>
+  <ul class="list-group">
+    {% for account in account_balances %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ account.name }}
+        <span class="badge bg-success rounded-pill">
+          {{ account.available | usd }}
+        </span>
+      </li>
+    {% else %}
+      <li class="list-group-item text-muted">No linked accounts found.</li>
+    {% endfor %}
+  </ul>
 </div>
-
-<div class="stats-container">
+ <div class="stats-container">
   <div class="stat1">
     <canvas id="myChart" width="400" height="400"></canvas>
     <div class="circleLabel">{{ left_in_spend | usd }} left</div>
@@ -32,105 +32,62 @@
     <div class="circleLabel">Expenses</div>
   </div>
 </div>
-
-<main>
-  <div class="main">
-    <div class ="container">
-      <h2 class="mt-5">Record transactions manually
-        <form id="transactionForm" action="/" method="POST" class="needs-validation" novalidate>
-          {{ form.hidden_tag() }}  
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="form_id" value="transactionForm">
-          <div class="form-group">
-            <select required name="division" id="division" class="form-control form-select">
-              <option value="" disabled selected>Choose a Division</option>
-              <option class="select" value="allMoney">General</option>
-              <option class="select" value="save">Save</option>
-              <option class="select" value="spend">Spend</option>
-              <option class="select" value="give">Give</option>
-              <option class="select" value="invest">Invest</option>
-              <option class="select" value="expense">Expense</option>
-            </select>
-            <div class="invalid-feedback">
-              Please select a category.
-            </div>
-          </div>
-          <div class="form-group">
-            <div class="input-container">
-              <input required name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transaction amount" onchange="correctDecimals(this)">
-            </div>
-            <div class="invalid-feedback">
-              Please enter a valid amount.
-            </div>
-          </div>
-          <div class="form-group">
-            <input name="description" class="form-control" type="text" placeholder="Description (optional)" maxlength="60">
-          </div>
-          <div class="form-group">
-            <select required name="tags[]" id="tag" class="form-control form-select" >
-              <option class="select" disabled selected>Select tags</option>
-              <option class="select" value="none">None</option>
-              {% for tag in tags_list %}
-                <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
-              {% endfor %}
-            </select>
-            <div id="selected-tags-container"></div>
-            <div id="create_tag_link">
-              <a href= "{{ url_for('tags') }}">Create tag</a>
-            </div>
-          </div>
-          <input type="hidden" name="tags[]" id="hidden-tags">
-          <button type="submit" id="submit1" class="btn">Submit</button>
-        </form>
-      </h2>
-    </div>
-
-    <div class ="container">
-      <h2 class="mt-5">Transfer Money
-        <form id="transferForm" class="needs-validation" action="/" method="POST" novalidate>
-          {{ form.hidden_tag() }}  
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="form_id" value="transferForm">
-          <input type="hidden"  name="tag_id" value="tag.id">
-
-          <select required name="fromCategory" id="fromCategory" class="form-control form-select">
-            <option value="" disabled selected>From</option>
-            <option class="select" value="save">Save</option>
-            <option class="select" value="spend">Spend</option>
-            <option class="select" value="give">Give</option>
-            <option class="select" value="invest">Invest</option>
-            <option class="select" value="expense">Expense</option>
-          </select>
-          <div class="invalid-feedback">
-            Please select a category.
-          </div>
-          <select required name="toCategory" id="toCategory" class="form-control form-select">
-            <option value="" disabled selected>To</option>
-            <option class="select" value="allMoney">General</option>
-            <option class="select" value="save">Save</option>
-            <option class="select" value="spend">Spend</option>
-            <option class="select" value="give">Give</option>
-            <option class="select" value="invest">Invest</option>
-            <option class="select" value="expense">Expense</option>
-          </select>
-        <div class="invalid-feedback">
-          Please select a category.
-        </div>
-          <div class="input-container">
-            <input required id="recordedTransaction" name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transfer amount" onchange="correctDecimals(this)">
-            <div class="invalid-feedback weird-error">
-              Please enter a valid amount.
-            </div>
-          </div>
-          <div>
-            <input name="category" class="form-control" type="text" placeholder="Category (optional)">
-          </div>
-        <button type="submit" id="submit2" class="btn">Submit</button>
-    </form>
-    </h2>
-    </div>
+{% endif %}
+{% if show_link_section %}
+<div class="parallax-section">
+  <div class="parallax-background">
+    <img src="static/scales_background.jpeg" alt="Company Logo" class="p_background_img" >
   </div>
-</main>
+  <div class="parallax-content">
+    <h1 class="hero-title">Track Your Finances</h1>
+    <p class="hero-subtitle">Simple Stewardship</p>
+    <form id="plaidForm" action="/api/create_link_token" method="POST">
+      {{ form.hidden_tag() }}  <!-- ✅ Flask-WTF automatically includes CSRF token -->
+      <button type="submit" id="link-button" class="hero-btn">Link Accounts</button>
+    </form>
+  <div id="transactionStatus" class="text-center mt-3" style="font-weight: bold; display: none;"></div>
+  </div>
+</div>
+
+{% endif %}
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="display: none;">
+  <div class="overlay-background"></div>
+  <div class="overlay-content">
+    <div class="spinner-border text-light" style="width: 3rem; height: 3rem;" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-light">Adding transactions... Do not refresh or leave!</p>
+  </div>
+</div>
+
+<style>
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+
+.overlay-background {
+  background: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.overlay-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+</style>
+
+
 <!-- Bootstrap JS -->
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 
@@ -144,85 +101,20 @@
     return null;
 }
 
-  document.addEventListener('DOMContentLoaded', function () {
-    const selectBox = document.getElementById('tag');
-    const selectedContainer = document.getElementById('selected-tags-container');
-    const hiddenTagsInput = document.getElementById('hidden-tags');
-
-    let selectedTags = [];
-
-    // Handle selection
-    selectBox.addEventListener('change', function () {
-        const selectedValue = selectBox.value;
-
-        // Prevent duplicate selections
-        if (selectedTags.includes(selectedValue)) {
-            return;
-        }
-
-        // Add to the selected tags list
-        if (selectedValue && selectedValue !== 'Select tags') {
-            selectedTags.push(selectedValue);
-
-            // Update the hidden input field
-            hiddenTagsInput.value = JSON.stringify(selectedTags);
-
-            // Display selected tags
-            const tagElement = document.createElement('div');
-            tagElement.className = 'selected-tag';
-            tagElement.textContent = selectedValue;
-
-            // Add a remove button to each tag
-            const removeButton = document.createElement('span');
-            removeButton.textContent = ' ✕';
-            removeButton.className = 'remove-tag';
-            removeButton.addEventListener('click', function () {
-                // Remove tag from list
-                selectedTags = selectedTags.filter(tag => tag !== selectedValue);
-                hiddenTagsInput.value = JSON.stringify(selectedTags);
-                selectedContainer.removeChild(tagElement);
-            });
-
-            tagElement.appendChild(removeButton);
-            selectedContainer.appendChild(tagElement);
-
-            // Reset the select box to the default
-            selectBox.selectedIndex = 0;
-        }
-    });
-});
 
   leftInSpend = "{{ left_in_spend }}";
+  total_spend = "{{ total_spend }}";
+  totalSave = "{{ totalSave }}";
+  totalGive = "{{ totalGive }}";
+  totalInvest = "{{ totalInvest }}";
   spendingColor = "{{ spending_color }}"; 
+  money_lost_this_month = "{{money_lost_this_month}}";
+  money_gained_this_month = "{{money_gained_this_month}}";
   var counts = {{ counts|tojson|safe }};
   var colors = {{ colors|tojson|safe }};
   var tagNames = {{ tag_names|tojson|safe }};
   
-  document.addEventListener('DOMContentLoaded', function () {
-        const form = document.getElementById('transactionForm');
-        form.addEventListener('submit', function (event) {
-            if (!form.checkValidity()) {
-                event.preventDefault();
-                event.stopPropagation();
-            }
-            form.classList.add('was-validated');
-        });
-    });
-
-    function correctDecimals(input) {
-        const value = parseFloat(input.value).toFixed(2);
-        input.value = value;
-    }
-  document.addEventListener('DOMContentLoaded', function () {
-      const form = document.getElementById('transferForm');
-      form.addEventListener('submit', function (event) {
-          if (!form.checkValidity()) {
-              event.preventDefault();
-               event.stopPropagation();
-          }
-          form.classList.add('was-validated');
-      });
-  });
+  
   
   document.addEventListener("DOMContentLoaded", function () {
   const linkButton = document.getElementById("link-button");
@@ -246,6 +138,12 @@
           token: data.link_token, // Use the link token returned from the server
           onSuccess: function (public_token, metadata) {
             // Send the public_token to your server to exchange it for an access_token
+
+            const statusDiv = document.getElementById('transactionStatus');
+            statusDiv.style.display = 'block';
+            statusDiv.style.color = 'red';
+            statusDiv.textContent = 'Adding transactions... Do not refresh or leave!';
+
             fetch("/api/set_access_token", {
               method: "POST",
               headers: {
@@ -259,6 +157,7 @@
               .then((response) => response.json())
               .then((data) => {
                 console.log("Access token obtained:", data);
+                addTransactionsWithFeedback();
                 // Optionally, you can now fetch account data or display a success message
               })
               .catch((error) => {
@@ -280,7 +179,59 @@
   });
 });
 
+function startPollingTransactions() {
+    const retryDelay = 3000;  // 3 seconds
+    const maxRetries = 20;
+    let attempts = 0;
 
+    function poll() {
+        fetch('/api/transactions?item_id=${item_id}')
+            .then(response => {
+                if (response.status === 202) {
+                    console.log("Transactions not ready yet...");
+                    attempts++;
+                    if (attempts < maxRetries) {
+                        setTimeout(poll, retryDelay);
+                    } else {
+                        alert("Still waiting on your bank data. Try again shortly.");
+                    }
+                } else if (response.ok) {
+                    response.json().then(data => {
+                        console.log("Transactions ready!", data);
+                        renderTransactions(data.recent_transactions);
+                    });
+                } else {
+                    console.error("Unexpected error:", response.statusText);
+                }
+            })
+            .catch(error => console.error("Polling error:", error));
+    }
+
+    poll();
+}
+
+async function addTransactionsWithFeedback() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.style.display = 'block';
+
+    try {
+        const response = await fetch('/api/transactions');
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+            location.reload();
+        } else if (response.status === 202) {
+            loadingOverlay.querySelector('p').textContent = data.message || 'Waiting on bank data. Please try again shortly.';
+        } else {
+            loadingOverlay.querySelector('p').textContent = data.error || 'An error occurred while adding transactions.';
+            loadingOverlay.querySelector('.spinner-border').style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Transaction fetch error:', err);
+        loadingOverlay.querySelector('p').textContent = 'A network error occurred. Please try again.';
+        loadingOverlay.querySelector('.spinner-border').style.display = 'none';
+    }
+}
 </script>
 
 {% endblock %}

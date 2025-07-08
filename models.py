@@ -4,6 +4,7 @@ import uuid
 from cryptography.fernet import Fernet
 import base64
 import os
+from cryptography.fernet import InvalidToken
 from encryption_utils import encrypt_data, decrypt_data
 from sqlalchemy import Column, DateTime
 def generate_uuid():
@@ -25,7 +26,7 @@ transaction_tags = db.Table(
         db.Integer,
         db.ForeignKey('tags.id', ondelete="CASCADE"),
         primary_key=True
-    )
+    ),
 )
 
 class User(db.Model):
@@ -33,6 +34,11 @@ class User(db.Model):
     name = db.Column(db.String(120), nullable=False )
     hash = db.Column(db.String(80), nullable=False)
     username = db.Column(db.String(120), nullable=False, unique=True)
+    savePercentage = db.Column(db.Numeric(precision=10, scale=2), nullable=True)
+    spendPercentage = db.Column(db.Numeric(precision=10, scale=2), nullable=True)
+    investPercentage = db.Column(db.Numeric(precision=10, scale=2), nullable=True)
+    expensePercentage = db.Column(db.Numeric(precision=10, scale=2), nullable=True)
+    givePercentage = db.Column(db.Numeric(precision=10, scale=2), nullable=True)
 
 class Money(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -99,6 +105,9 @@ class Tags(db.Model):
         secondary=transaction_tags,
         back_populates='tags'
     )
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'name', name='_user_tag_uc'),
+    )
 
     
 class TagColor(db.Model):
@@ -137,9 +146,11 @@ class PlaidItem(db.Model):
     # Securely store access_token as encrypted but allow decrypted access
     @property
     def decrypted_access_token(self):
-        """Decrypt access_token when retrieved"""
-        return decrypt_data(self.access_token)  # ✅ Use the correct column name
-
+        try:
+            return decrypt_data(self.access_token)
+        except InvalidToken:
+            return self.access_token
+        
     @decrypted_access_token.setter
     def decrypted_access_token(self, token):
         """Encrypt access_token before storing"""
@@ -161,7 +172,9 @@ class Transaction(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp()) # Record creation timestamp
     bank_name = db.Column(db.String(100), nullable=True)
     division = db.Column(db.String, nullable=True, default="")  
+    note = db.Column(db.String, nullable=True, default="")
     created_at = db.Column(DateTime, default=datetime.utcnow)
+    item_id = db.Column(db.String(255), nullable=True)
     tags = db.relationship(
         'Tags',
         secondary=transaction_tags,

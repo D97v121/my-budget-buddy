@@ -11,6 +11,7 @@ import datetime as dt
 import json
 import logging
 from flask_session import Session
+from openai import OpenAI
 from flask_sqlalchemy import SQLAlchemy
 from decimal import Decimal
 from cryptography.fernet import Fernet
@@ -20,6 +21,7 @@ from flask import redirect, render_template, request, session
 from functools import wraps
 from models import Save, Give, Spend, Invest, Money, Expense, Tags, TagColor, Transaction
 
+
 model_map = {
     "save": Save,
     "spend": Spend,
@@ -28,7 +30,7 @@ model_map = {
     "expense": Expense
 }
 
-
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def apology(message, code=400):
     """Render message as an apology to user."""
@@ -103,19 +105,49 @@ def lookup(symbol):
     except (KeyError, IndexError, requests.RequestException, ValueError):
         return None
 
+def classify_transaction_amount(txn):
+    """
+    Returns a reversed-sign amount based on Plaid's direction logic and account type.
+    This assumes your system treats incoming money as negative (e.g., credit) and spending as positive.
+    """
+    raw_amount = txn.get("amount", 0)
+    direction = (txn.get("direction") or "").upper()
+    account_type = (txn.get("account_type") or "").lower()  # e.g., 'credit', 'depository'
+
+    # Safety check
+    if direction not in {"INFLOW", "OUTFLOW"}:
+        print(f"[warning] Unknown direction for transaction: {txn.get('name')}")
+        return -raw_amount  # fallback: reversed sign just in case
+
+    if account_type == "credit":
+        # For credit cards:
+        if direction == "OUTFLOW":
+            return -abs(raw_amount)  # card charge → negative
+        elif direction == "INFLOW":
+            return abs(raw_amount)   # payment/refund → positive
+    else:
+        # For checking, savings, and debit:
+        if direction == "OUTFLOW":
+            return abs(raw_amount)   # money out → positive
+        elif direction == "INFLOW":
+            return -abs(raw_amount)  # money in → negative
+
+    return -raw_amount  # fallback
+
+
+
 
 def usd(value):
     if not value:
         value = 0
-    if value < 0:
-        return "-${:,.2f}".format(abs(value))
+    if value >= 0:
+        return "${:,.2f}".format(abs(value))
     else:
-        return "${:,.2f}".format(value)
+        return "-${:,.2f}".format(abs(value))
     
 def exit_usd(usd_string):
-    # Remove currency symbols and commas
-    cleaned_string = re.sub(r'[^\d.]', '', usd_string)
-    # Convert the cleaned string to a float
+    # Keep the negative sign if it exists at the beginning
+    cleaned_string = re.sub(r'[^\d.-]', '', usd_string)
     return float(cleaned_string)
     
 def dollar(value):
@@ -175,11 +207,9 @@ def cycle_through_money_table(db, money_record):
     logging.debug("Money record updated successfully")
 
 
-def calculateCategory(db, Transaction, label, money, category, bank_name, tag_objects, division, date=dt.datetime.now()):
+def calculateCategory(db, Transaction, label, money, category, bank_name, tag_objects, division="none", date=dt.datetime.now(), description="none"):
     logging.debug(f"Calculating category: {label} with amount: {money} with date: {date}")
     logging.debug(f"division: { division } ")
-    if not division:
-        division = "none"
     user_id = session.get("user_id")
     if user_id is None:
         logging.error("User ID is None. Cannot proceed with calculation.")
@@ -198,9 +228,12 @@ def calculateCategory(db, Transaction, label, money, category, bank_name, tag_ob
             date=dt.datetime.now()
         if isinstance(date, str):
             date = datetime.strptime(date, '%m/%d/%Y')
-        new_record = Transaction(user_id=user_id, amount=money, bank_name=bank_name, category=category, timestamp=dt.datetime.now(), date=date, division=division)
+        new_record = Transaction(user_id=user_id, amount=money, bank_name=bank_name, category=category, timestamp=dt.datetime.now(), date=date, division=division, note=description)
         if unique_tags:
-            new_record.tags.extend(unique_tags)
+            existing_tag_ids = {tag.id for tag in new_record.tags}
+            for tag in unique_tags:
+                if tag.id not in existing_tag_ids:
+                    new_record.tags.append(tag)
 
         # Assign unique tags to the transaction
         db.session.add(new_record)
@@ -224,20 +257,23 @@ def calculateCategory(db, Transaction, label, money, category, bank_name, tag_ob
         raise
 
 #calculate where money goes and what percentage goes there
-def calculateAllMoney(db, Transaction, tag_objects, money, category, date, bank_name):
+def calculateAllMoney(db, Transaction, tag_objects, money, category, date, bank_name, user, description='none'):
     logging.debug("Calculating all money allocations")
     
-    savePercentage = Decimal('0.5')
-    givePercentage = Decimal('0.2')
-    spendPercentage = Decimal('0.2')
-    investPercentage = Decimal('0.1')
-    expensePercentage = Decimal('0')
 
-    save_amount = money * float(savePercentage)
-    give_amount = money * float(givePercentage)
-    spend_amount = money * float(spendPercentage)
-    invest_amount = money * float(investPercentage)
-    expense_amount = money * float(expensePercentage)
+    if not user:
+        raise ValueError("User not found.")
+    savePercentage = (user.savePercentage or Decimal('0')) * Decimal('0.01')
+    givePercentage = (user.givePercentage or Decimal('0')) * Decimal('0.01')
+    spendPercentage = (user.spendPercentage or Decimal('0')) * Decimal('0.01')
+    investPercentage = (user.investPercentage or Decimal('0')) * Decimal('0.01')
+    expensePercentage = (user.expensePercentage or Decimal('0')) * Decimal('0.01')
+
+    save_amount = money * savePercentage
+    give_amount = money * givePercentage
+    spend_amount = money * spendPercentage
+    invest_amount = money * investPercentage
+    expense_amount = money * expensePercentage
     
 
     logging.debug(f"Save amount: {save_amount}")
@@ -246,11 +282,11 @@ def calculateAllMoney(db, Transaction, tag_objects, money, category, date, bank_
     logging.debug(f"Invest amount: {invest_amount}")
     logging.debug(f"Expense amount: {expense_amount}")
 
-    calculateCategory(db, Transaction, 'save', save_amount, bank_name=bank_name, division="save", tag_objects=tag_objects, category=category, date=date)
-    calculateCategory(db, Transaction, 'give', give_amount, bank_name=bank_name, division="give", tag_objects=tag_objects, category=category, date=date)
-    calculateCategory(db, Transaction, 'spend', spend_amount, bank_name=bank_name, division="spend", tag_objects=tag_objects, category=category, date=date)
-    calculateCategory(db, Transaction, 'invest', invest_amount, bank_name=bank_name, division="invest", tag_objects=tag_objects, category=category, date=date)
-    calculateCategory(db, Transaction, 'expense', expense_amount, bank_name=bank_name, division="expense", tag_objects=tag_objects, category=category, date=date)
+    calculateCategory(db, Transaction, 'save', save_amount, bank_name=bank_name, division="save", tag_objects=tag_objects, category=category, date=date, description=description)
+    calculateCategory(db, Transaction, 'give', give_amount, bank_name=bank_name, division="give", tag_objects=tag_objects, category=category, date=date, description=description)
+    calculateCategory(db, Transaction, 'spend', spend_amount, bank_name=bank_name, division="spend", tag_objects=tag_objects, category=category, date=date, description=description)
+    calculateCategory(db, Transaction, 'invest', invest_amount, bank_name=bank_name, division="invest", tag_objects=tag_objects, category=category, date=date, description=description)
+    calculateCategory(db, Transaction, 'expense', expense_amount, bank_name=bank_name, division="expense", tag_objects=tag_objects, category=category, date=date, description=description)
 
 def process_data(granularity, Transaction):
         user_id=session.get("user_id")
@@ -337,3 +373,24 @@ def populate_tags(db, user_id):
     logging.debug(f"Tags populated for user ID: {user_id}")
 
 
+
+def edit_transaction_name(original_name: str) -> str:
+    """
+    Uses OpenAI to clean up Plaid transaction names.
+    Example: "Purchase TST*ZINQUE MALIBU" → "Zinque Malibu"
+    """
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",  # or gpt-3.5-turbo if cost/speed is a factor
+            messages=[
+                {"role": "system", "content": "You are an assistant that cleans up messy bank transaction names to make them short, clean, and human-readable. Always remove noise like 'Purchase', 'TST*', 'FD*', etc. Capitalize the result properly. Respond with only the cleaned-up name."},
+                {"role": "user", "content": f"Original: {original_name}"}
+            ],
+            max_tokens=30,
+            temperature=0.2
+        )
+        cleaned_name = response.choices[0].message.content.strip()
+        return cleaned_name
+    except Exception as e:
+        print(f"OpenAI name cleanup failed: {e}")
+        return original_name  # fallback
