@@ -1,4 +1,5 @@
 .venv/
+venv/
 __pycache__/
 flask_session/
 *.code-workspace
@@ -10,3 +11,4 @@ instance/
 *.pyc
 .DS_Store
 .env.env
+.env

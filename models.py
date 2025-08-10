@@ -5,7 +5,7 @@ from cryptography.fernet import Fernet
 import base64
 import os
 from cryptography.fernet import InvalidToken
-from encryption_utils import encrypt_data, decrypt_data
+from app.encryption_utils import encrypt_data, decrypt_data
 from sqlalchemy import Column, DateTime
 def generate_uuid():
     """Generate a UUID string."""

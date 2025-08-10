@@ -1,0 +1,56 @@
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_session import Session
+from flask_wtf.csrf import CSRFProtect
+from flask_login import LoginManager
+from flask_migrate import Migrate
+import logging
+from datetime import timedelta
+
+# Initialize extensions
+db = SQLAlchemy()
+csrf = CSRFProtect()
+login_manager = LoginManager()
+session = Session()
+migrate = Migrate()
+
+def create_app():
+    app = Flask(__name__)
+
+    # App config
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../instance/money.db'
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = 'super-secret-key'
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config["SESSION_PERMANENT"] = False
+    app.config["SESSION_USE_SIGNER"] = True
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["WTF_CSRF_ENABLED"] = True
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+
+    # Initialize extensions
+    from app.models import User
+    db.init_app(app)
+    csrf.init_app(app)
+    login_manager.init_app(app)
+    session.init_app(app)
+    migrate.init_app(app, db)
+
+    login_manager.login_view = 'auth.login'
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+
+    # ✅ Register Jinja filters from helpers
+    from app.helpers import usd, timestamp_editor
+    app.jinja_env.filters["usd"] = usd
+    app.jinja_env.filters["timestamp_editor"] = timestamp_editor
+
+    # ✅ Register blueprints/routes
+    from app.routes import register_routes
+    register_routes(app)
+
+    return app

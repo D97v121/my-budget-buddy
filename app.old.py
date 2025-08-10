@@ -2059,7 +2059,23 @@ def payment():
 # https://plaid.com/docs/#retrieve-item
 
 
-
+@app.route('/api/item', methods=['GET'])
+def item():
+    try:
+        request = ItemGetRequest(access_token=access_token)
+        response = client.item_get(request)
+        request = InstitutionsGetByIdRequest(
+            institution_id=response['item']['institution_id'],
+            country_codes=list(map(lambda x: CountryCode(x), PLAID_COUNTRY_CODES))
+        )
+        institution_response = client.institutions_get_by_id(request)
+        pretty_print_response(response.to_dict())
+        pretty_print_response(institution_response.to_dict())
+        return jsonify({'error': None, 'item': response.to_dict()[
+            'item'], 'institution': institution_response.to_dict()['institution']})
+    except ApiException as e:
+        error_response = format_error(e)
+        return jsonify(error_response)
 
 # Retrieve CRA Base Report and PDF
 # Base report: https://plaid.com/docs/check/api/#cracheck_reportbase_reportget

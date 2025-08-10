@@ -1,0 +1,350 @@
+.
+├── .DS_Store
+├── .env
+├── .gitignore
+├── .venv
+│   ├── bin
+│   │   ├── Activate.ps1
+│   │   ├── activate
+│   │   ├── activate.csh
+│   │   ├── activate.fish
+│   │   ├── alembic
+│   │   ├── dotenv
+│   │   ├── flask
+│   │   ├── gunicorn
+│   │   ├── mako-render
+│   │   ├── markdown-it
+│   │   ├── normalizer
+│   │   ├── pip
+│   │   ├── pip3
+│   │   ├── pip3.9
+│   │   ├── pygmentize
+│   │   ├── python -> python3
+│   │   ├── python3 -> /Library/Developer/CommandLineTools/usr/bin/python3
+│   │   ├── python3.9 -> python3
+│   │   ├── sqlformat
+│   │   └── wheel
+│   ├── include
+│   ├── lib
+│   │   └── python3.9
+│   └── pyvenv.cfg
+├── .vscode
+├── Dockerfile
+├── My-Budget-Buddy.code-workspace
+├── Procfile
+├── __pycache__
+│   ├── app.cpython-312.pyc
+│   ├── encryption_utils.cpython-312 2.pyc
+│   ├── encryption_utils.cpython-312.pyc
+│   ├── forms.cpython-312 2.pyc
+│   ├── forms.cpython-312.pyc
+│   ├── helpers.cpython-312 2.pyc
+│   ├── helpers.cpython-312.pyc
+│   ├── models.cpython-312 2.pyc
+│   ├── models.cpython-312.pyc
+│   └── wsgi.cpython-312.pyc
+├── app.py
+├── cert.pem
+├── encryption_utils.py
+├── flask_session
+│   ├── 0153ffacf8265f0eee9ce98c7c9842e5
+│   ├── 032968a4a259f9189186b68d6782c2e3
+│   ├── 07e80aec5744c641e4f90a700e5fc467.__wz_cache
+│   ├── 0864b03608b30f7503e94935cb46a68f
+│   ├── 08c1ac6db235a18f29d57adbf5d0f1c8
+│   ├── 0d2709a0fb52a183fa1f971f2ed49a46
+│   ├── 12abaab32fd5d9e7bc39ecc58ae9e042
+│   ├── 146d92adf392f500423049f703129b84
+│   ├── 150080496660d1f63ee90d82a3c2bd2e
+│   ├── 17280ad9088f328bb5e286b9f559e2a7
+│   ├── 19d850d631562c24e225126efb752175
+│   ├── 1c4267d7e836ad480c3feb4a01ef7dc6
+│   ├── 2029240f6d1128be89ddc32729463129
+│   ├── 23d39aaf74f7a9966022634efafea23c
+│   ├── 25a0233cdce8d5ba692add652a7db567
+│   ├── 26d7e5e6277f050297d91cab827c92cd
+│   ├── 31cb8c1547d0a3eea47edef8142e6167
+│   ├── 3420b84039be39d464224dbd41c016ae
+│   ├── 3554147c1cf403a40e93ad0c67232301
+│   ├── 35d6af7595cda8496b60336ed9b49cad
+│   ├── 38dc4467178b76bb67f3a22d78bca845
+│   ├── 3aebd088461e1571b48c0e14273949ea
+│   ├── 3b35970128d0a2cfaaaad7659af4c888.__wz_cache
+│   ├── 3fe4254d0beee8f53e19303efbaa2ef1
+│   ├── 418663ee2235d6d24080f48be2f8fcb6
+│   ├── 44670227e0a30963d73aba188adb1c87
+│   ├── 44d79c103e7d07b9ef780db57e12653a
+│   ├── 4ab6a2de3b46575ff128c6066c3b8d9a
+│   ├── 4f08b447e00274e3165ac5128df0f470
+│   ├── 519a96e5072a97452d6835d8f8f19c7e
+│   ├── 544f5890059da031ffd74289198c62ec
+│   ├── 5f999b5d396fddaf94bba458493c9dd2
+│   ├── 6046fa89d66348f6e23bab201344c5d5
+│   ├── 60d4c6bde3031b72b5fa6bf580e7fa39
+│   ├── 619aecacbe885b5c9c6c3255bf41eebf
+│   ├── 671626055fed02c3d3d0d1ca9f7a0e8f
+│   ├── 6a332be0cdd6a3a889abc5a6cd5132cf
+│   ├── 6bfc9245492f3b122ee1a4b9eac32482
+│   ├── 6e17517981c1c1418c44bff6b4201ef5
+│   ├── 7210e323eea0a6c7a3c316bdfb812bdf
+│   ├── 72f8cef4fdf20601888f0e892f6aae59
+│   ├── 7731e3dadf4c18fc45183a3ff1057179
+│   ├── 79f260d8037edc1e4d50184dd62c72d2
+│   ├── 81efd25f9ea6e7f659d58a4d810fab24
+│   ├── 8444995a47db4481f9693ca3bd97802e
+│   ├── 84d965af1a569fd02a7649c76d48fab3
+│   ├── 9118886ceb2879bdc839986e40e273e2
+│   ├── 92b7a2b48ee4029a6b5fdfa44e24f9cc
+│   ├── 936b23a2cc0d5a0dbd9903e38f64a8dc
+│   ├── 9381be0806616833c30d8a46d96a0942
+│   ├── 93dfa9878760a83987dba0a7483a79dd
+│   ├── 94cce796f7c5a5c532cb77eb600a017a
+│   ├── 990b58ca26a5f3878f21a76c95f3d6d7
+│   ├── a766cae84c3a936084cc0b7febdef096
+│   ├── a77d122df77fd39853513a711d7c31dc
+│   ├── a7af2977eee6a6d6a48db443b91e3431
+│   ├── ac91ea926fc448e04c794b148ac410c6
+│   ├── b67ab9a422bdb8568c9e36fccb17d2eb
+│   ├── b96c5b6a06a5bfc40b09156af3c89e8b
+│   ├── bb4e566d19725318d8cdf9318596c1a8
+│   ├── bca85eada0eb072d868c6c1c10b15204
+│   ├── bf3b42e90583b775446855e82b7b1043
+│   ├── c0a914a91829ca34824b6a00ff63e643
+│   ├── c0f6f0b04638dc883f733f74843b4acd
+│   ├── c36d7fa5fc3314083dded8063bc08c81
+│   ├── c453dfe5f02113dd982ddedbefd7e820
+│   ├── c45642380b1aca472c631bf33f864c28
+│   ├── cdb7e6fb7dca54e20c690a3ff80a069f
+│   ├── d03ab17c773703f57e5249517acfef1b
+│   ├── d10ed0ce5af046780898eb94e2922f3e
+│   ├── d1897469313eab6cab707e1a2e96369b
+│   ├── d29eda6466531bf8b7e1e35e359d73a7
+│   ├── d8b044e3f613cd854c2c62763cd3bdb4
+│   ├── da50b306ca508fdd701b485613840975
+│   ├── db2e56d88b61de466dc98553580e2a6c
+│   ├── db874cf59d29505231f836ebc101ddf8
+│   ├── db8c1ab8fcd447c071ee19621b883057
+│   ├── dc40b220703a09ff257197b54e5ecc82.__wz_cache
+│   ├── df6ace08dc75e16e68055bea450e69f8
+│   ├── e3aa7ef736c5e00d20e1db8d8d81b7f1
+│   ├── e473485b72586adbb57e210660e406c2
+│   ├── e7a1a9ee484e378e0009394d630c827e
+│   ├── e7feeb45b3ac7d180968c9c282dd2769
+│   ├── eb613c0a50b4cf6de00e8cc4e4a31736
+│   ├── f0f80501cb6dd64aa4f5cf579acdb8e6
+│   ├── f454ca47c6c1cf4c9332cf7f797fbc19
+│   ├── f76025d1a6126bc229022083e18068f9
+│   ├── f9e403f866b313f47fdd6ba752504651
+│   ├── fa6c228f4a348925faca61c33f1f1f0a
+│   ├── fab61e94c374d131f6ec54f9f64af09a
+│   ├── fe27e1df8c9c04e485be78a95a4b9dd8
+│   └── tmp4xllf136.__wz_cache
+├── flask_session_dir
+│   └── 2029240f6d1128be89ddc32729463129
+├── forms.py
+├── helpers.py
+├── instance
+│   └── money.db
+├── key.pem
+├── migrations
+│   ├── README
+│   ├── __pycache__
+│   │   └── env.cpython-312.pyc
+│   ├── alembic.ini
+│   ├── env.py
+│   ├── script.py.mako
+│   └── versions
+├── models.py
+├── quick_fixes.py
+├── quickstart
+│   ├── .dockerignore
+│   ├── .env
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── LICENSE
+│   ├── Makefile
+│   ├── README.md
+│   ├── assets
+│   │   └── quickstart.jpeg
+│   ├── docker-compose.yml
+│   ├── frontend
+│   │   ├── .gitignore
+│   │   ├── .npmrc
+│   │   ├── .nvmrc
+│   │   ├── Dockerfile
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   ├── public
+│   │   ├── src
+│   │   └── tsconfig.json
+│   ├── go
+│   │   ├── .env -> ../.env
+│   │   ├── .env.example -> ../.env.example
+│   │   ├── Dockerfile
+│   │   ├── go.mod
+│   │   ├── go.sum
+│   │   ├── server.go
+│   │   └── start.sh
+│   ├── java
+│   │   ├── .env -> ../.env
+│   │   ├── .env.example -> ../.env.example
+│   │   ├── .gitignore
+│   │   ├── Dockerfile
+│   │   ├── config.yml
+│   │   ├── pom.xml
+│   │   ├── src
+│   │   └── start.sh
+│   ├── node
+│   │   ├── .dockerignore
+│   │   ├── .env -> ../.env
+│   │   ├── .env.example -> ../.env.example
+│   │   ├── .gitignore
+│   │   ├── .npmrc
+│   │   ├── .nvmrc
+│   │   ├── .prettierrc
+│   │   ├── Dockerfile
+│   │   ├── index.js
+│   │   ├── package-lock.json
+│   │   ├── package.json
+│   │   └── start.sh
+│   ├── python
+│   │   ├── .env -> ../.env
+│   │   ├── .env.example -> ../.env.example
+│   │   ├── Dockerfile
+│   │   ├── requirements.txt
+│   │   ├── server.py
+│   │   └── start.sh
+│   ├── quickstart
+│   │   ├── .dockerignore
+│   │   ├── .env.example
+│   │   ├── .gitignore
+│   │   ├── LICENSE
+│   │   ├── Makefile
+│   │   ├── README.md
+│   │   ├── assets
+│   │   ├── docker-compose.yml
+│   │   ├── frontend
+│   │   ├── go
+│   │   ├── java
+│   │   ├── node
+│   │   ├── python
+│   │   └── ruby
+│   └── ruby
+│       ├── .env -> ../.env
+│       ├── .env.example -> ../.env.example
+│       ├── .gitignore
+│       ├── .ruby-version
+│       ├── Dockerfile
+│       ├── Gemfile
+│       ├── Gemfile.lock
+│       ├── app.rb
+│       └── start.sh
+├── requirements.txt
+├── routes.py
+├── runtime.txt
+├── server.nginx
+├── settings.py
+├── static
+│   ├── .DS_Store
+│   ├── Balin Strickler.jpg
+│   ├── Myles West.jpg
+│   ├── Ramen Keane.jpg
+│   ├── Sol Levy.jpg
+│   ├── scales_background.jpeg
+│   ├── scripts.js
+│   └── styles.css
+├── structure.txt
+├── templates
+│   ├── Tracking.html
+│   ├── account_detail.html
+│   ├── bank_accounts.html
+│   ├── delete_all_plaid_items.html
+│   ├── delete_data.html
+│   ├── delete_transactions.html
+│   ├── edit_transactions.html
+│   ├── expense_history.html
+│   ├── fetch_transactions.html
+│   ├── give_history.html
+│   ├── goals.html
+│   ├── graph_experimentation.html
+│   ├── history.html
+│   ├── index.html
+│   ├── invest_history.html
+│   ├── layout.html
+│   ├── login.html
+│   ├── logout.html
+│   ├── notes.html
+│   ├── profile_questions.html
+│   ├── register.html
+│   ├── resources.html
+│   ├── save_history.html
+│   ├── settings
+│   │   ├── account.html
+│   │   ├── general.html
+│   │   ├── recommendations.html
+│   │   └── tags.html
+│   ├── spend_history.html
+│   ├── transactions.html
+│   ├── transactions_history.html
+│   └── verify.html
+├── temporary.py
+├── venv
+│   ├── bin
+│   │   ├── Activate.ps1
+│   │   ├── activate
+│   │   ├── activate.csh
+│   │   ├── activate.fish
+│   │   ├── alembic
+│   │   ├── bandit
+│   │   ├── bandit-baseline
+│   │   ├── bandit-config-generator
+│   │   ├── distro
+│   │   ├── dotenv
+│   │   ├── flake8
+│   │   ├── flask
+│   │   ├── flask 2
+│   │   ├── flask 3
+│   │   ├── git-filter-repo
+│   │   ├── gunicorn
+│   │   ├── gunicorn 2
+│   │   ├── httpx
+│   │   ├── mako-render
+│   │   ├── mako-render 2
+│   │   ├── markdown-it
+│   │   ├── normalizer
+│   │   ├── normalizer 2
+│   │   ├── openai
+│   │   ├── pbr
+│   │   ├── pip
+│   │   ├── pip 2
+│   │   ├── pip3
+│   │   ├── pip3 2
+│   │   ├── pip3.12
+│   │   ├── pip3.12 2
+│   │   ├── plaid
+│   │   ├── pycodestyle
+│   │   ├── pyflakes
+│   │   ├── pygmentize
+│   │   ├── python -> python3.12
+│   │   ├── python 2 -> python3.12
+│   │   ├── python3 -> python3.12
+│   │   ├── python3 2 -> python3.12
+│   │   ├── python3.12 -> /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12
+│   │   ├── python3.12 2 -> /Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12
+│   │   ├── sqlformat
+│   │   ├── sqlformat 2
+│   │   ├── sqlformat 3
+│   │   ├── tqdm
+│   │   ├── tree-cli
+│   │   ├── wheel
+│   │   └── wheel 2
+│   ├── include
+│   │   └── python3.12
+│   ├── lib
+│   │   ├── python3.12
+│   │   └── python3.12 2
+│   └── pyvenv.cfg
+├── workspace
+└── wsgi.py
+
+43 directories, 305 files

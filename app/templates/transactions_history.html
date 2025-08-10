@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<!-- Main Content -->
+<main>
+    {% set reversed_expense = expense_records_data|reverse %}
+        <table class="table table-group-divider table-bordered table-striped-columns">
+            <thead>
+                <th colspan="4" class="text-start center">Expense Records</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <th class="text-end">Amount</th>
+                    <th class="text-end">Root</th>
+                    <th class="text-end">Division</th>
+                    <th class="text-end">Date</th>
+                </tr>
+                {% for record in reversed_expense %}
+                    <tr>
+                        <td class="text-end">{{ record.amount|usd }}</td>
+                        <td class="text-end">{{ record.root }}</td>
+                        <td class="text-end">{{ record.division }}</td>
+                        <td class="text-end">{{ record.timestamp }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+
+
+    {% endblock %}

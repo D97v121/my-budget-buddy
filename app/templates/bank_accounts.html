@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<body>
+    <header class="text-center my-4">
+        <h1 class="hero-title">Connected Bank Accounts</h1>
+        <p class="hero-subtitle">Click on a bank below to view details and transactions.</p>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="row justify-content-center">
+                {% for account in accounts %}
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 mb-4 d-flex justify-content-center">
+                    <div class="card shadow-sm border-0 text-center position-relative" style="width: 100%; max-width: 220px;">
+                        <!-- Three-dot dropdown -->
+                        <div class="dropdown position-absolute top-0 end-0 m-2">
+                            <button class="btn btn-sm btn-light border-0" type="button" data-bs-toggle="dropdown">
+                                &#x22EE;
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal{{ account.id }}">Delete</a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <a href="{{ url_for('dashboard_routes.account_detail', item_id=account.id) }}" class="text-decoration-none text-dark">
+                            <img src="{{ account.logo_url }}" alt="{{ account.name }}"
+                                 class="card-img-top rounded-top" style="object-fit: contain; padding: 20px; height: 150px;">
+                            <div class="card-body p-3">
+                                <h5 class="card-title mb-0">{{ account.name }}</h5>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Delete Confirmation Modal -->
+                <div class="modal fade" id="deleteModal{{ account.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ account.id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title text-danger" id="deleteModalLabel{{ account.id }}">Confirm Delete</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-start">
+                                <p>Are you sure you want to delete <strong>{{ account.name }}</strong>?</p>
+                                <p class="text-danger">This will remove the bank and all associated transactions from your account.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <form method="POST" action="{{ url_for('dashboard_routes.delete_bank_account', plaid_item_id=account.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </main>
+</body>
+{% endblock %}
