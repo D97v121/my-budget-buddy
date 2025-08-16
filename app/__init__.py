@@ -7,12 +7,16 @@ from flask_migrate import Migrate
 import logging
 from datetime import timedelta
 
+from dotenv import load_dotenv
+load_dotenv()  # will pick up the same .env in dev
+
 # Initialize extensions
 db = SQLAlchemy()
 csrf = CSRFProtect()
 login_manager = LoginManager()
 session = Session()
 migrate = Migrate()
+
 
 def create_app():
     app = Flask(__name__)

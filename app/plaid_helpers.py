@@ -17,18 +17,18 @@ from app.models.plaid import PlaidItem
 load_dotenv()
 
 # --- Plaid Client Setup ---
-"""
 PLAID_CLIENT_ID = os.getenv('PLAID_CLIENT_ID')
 PLAID_SECRET = os.getenv('PLAID_SECRET')
 PLAID_ENV = os.getenv('PLAID_ENV', 'production')
 PLAID_PRODUCTS = os.getenv('PLAID_PRODUCTS', 'transactions').split(',')
 PLAID_COUNTRY_CODES = os.getenv('PLAID_COUNTRY_CODES', 'US').split(',')
-"""
 
+"""
 PLAID_ENV="sandbox"
 PLAID_CLIENT_ID="676753d2491dca001bd2dc10"
 PLAID_SECRET="d1449bffdc40adc52ac03d5d537c1d"
 SECRET_KEY="3463328b3d3cf041ab3c746bc103488f996f9a980de1464d6a914bbb0f079159"
+"""
 
 host = Environment.Production if PLAID_ENV == 'production' else Environment.Sandbox
 
