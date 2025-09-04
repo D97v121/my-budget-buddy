@@ -6,10 +6,12 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 import logging
 from datetime import timedelta
+from pathlib import Path
+import os
+
 
 from dotenv import load_dotenv
 load_dotenv()  # will pick up the same .env in dev
-
 # Initialize extensions
 db = SQLAlchemy()
 csrf = CSRFProtect()
@@ -21,8 +23,10 @@ migrate = Migrate()
 def create_app():
     app = Flask(__name__)
 
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+
     # App config
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///../instance/money.db'
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(app.instance_path, "money.db")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'super-secret-key'
     app.config['SESSION_TYPE'] = 'filesystem'
@@ -33,6 +37,7 @@ def create_app():
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["WTF_CSRF_ENABLED"] = True
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+    print("DB URI AT STARTUP:", app.config.get("SQLALCHEMY_DATABASE_URI"))
 
     # Initialize extensions
     from app.models import User

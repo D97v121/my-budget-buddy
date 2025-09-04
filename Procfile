@@ -1,1 +1,2 @@
-web: gunicorn wsgi:app -w 3 -b 0.0.0.0:8080 --timeout 120
+web: gunicorn "app:create_app()" --workers ${WEB_CONCURRENCY:-3} --bind 0.0.0.0:$PORT --timeout ${GUNICORN_TIMEOUT:-120} --access-logfile - --error-logfile -
+

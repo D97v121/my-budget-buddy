@@ -1,11 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, session
+from flask import Blueprint, render_template, request, redirect, session,  url_for
 import json
 from flask_login import login_required
 from app.forms import TransactionForm
 from app.models import User, Transaction, Tags, Expense, Money, PlaidItem
 from app.helpers import calculateDivision, calculateAllMoney
 from app import db
-from app.plaid_helpers import client
+from app.plaid_helpers import client, PLAID_ENV
 from plaid.model.accounts_get_request import AccountsGetRequest
 from sqlalchemy import func, extract
 from decimal import Decimal
@@ -167,7 +167,41 @@ def index():
     account_balances = []
     for item in plaid_items:
         access_token = item.access_token
+        def _token_env(token: str) -> str:
+            try:
+                return token.split("-")[1]
+            except Exception:
+                return "unknown"
+
+        # ... inside index(), right BEFORE calling accounts_get
+        print("[PlaidDebug] APP_ENV:", PLAID_ENV)
+
+        # however you load the token today:
+        # access_token = <from DB or session>
+
+        src = "session" if session.get("access_token") else "db"
+        print("[PlaidDebug] TOKEN_SRC:", src, "TOKEN_PREFIX:", access_token[:26], "TOKEN_ENV:", _token_env(access_token))
+
+        expected = PLAID_ENV.lower()
+        if _token_env(access_token) != expected:
+            # purge everywhere we might have stashed it
+            session.pop("access_token", None)
+
+            item = (PlaidItem.query
+                    .filter_by(user_id=current_user.id)
+                    .filter(PlaidItem.access_token == access_token)
+                    .first())
+
+            if item:
+                db.session.delete(item)   # <-- delete row instead of setting NULL
+                db.session.commit()
+
+            return redirect(url_for("pplaid.create_link_token"))  # relink in prod
+
         accounts = client.accounts_get(AccountsGetRequest(access_token=access_token)).to_dict()['accounts']
+        print("PLAID_ENV:", PLAID_ENV)
+        print("ACCESS TOKEN:", access_token[:40])
+        print("TOKEN ENV:", access_token.split("-")[1]) 
         for acct in accounts:
             account_balances.append({
                 'name': acct['name'],
