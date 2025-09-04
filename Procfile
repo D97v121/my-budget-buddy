@@ -1,2 +1,1 @@
-web: gunicorn "app:create_app()" --workers ${WEB_CONCURRENCY:-3} --bind 0.0.0.0:$PORT --timeout ${GUNICORN_TIMEOUT:-120} --access-logfile - --error-logfile -
-
+web: gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 3 --timeout 120 --access-logfile - --error-logfile -
