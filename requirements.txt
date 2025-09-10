@@ -46,6 +46,7 @@ ordered-set==4.1.0
 packaging==24.1
 pbr==6.1.1
 plaid-python==29.1.0
+psycopg2-binary>=2.9
 pyaes==1.6.1
 pycodestyle==2.12.1
 pycparser==2.22

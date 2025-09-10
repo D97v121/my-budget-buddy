@@ -8,7 +8,7 @@ import logging
 from datetime import timedelta
 from pathlib import Path
 import os
-
+from sqlalchemy import inspect
 
 from dotenv import load_dotenv
 load_dotenv()  # will pick up the same .env in dev
@@ -61,5 +61,23 @@ def create_app():
     # ✅ Register blueprints/routes
     from app.routes import register_routes
     register_routes(app)
+
+    def _bootstrap_db(app):
+        with app.app_context():
+            insp = inspect(db.engine)
+            # create tables if missing
+            if 'user' not in insp.get_table_names():
+                db.create_all()
+                # optional: seed a login so you can get in after every redeploy
+                username = os.getenv("BOOTSTRAP_USERNAME", "demo")
+                password = os.getenv("BOOTSTRAP_PASSWORD", "demo123")
+                u = User(username=username, name="Demo User")
+                u.set_password(password)  # whatever your model uses
+                db.session.add(u)
+                db.session.commit()
+                print(f"[bootstrap] Created demo user: {username}/{password}")
+
+    # in create_app() **after** db.init_app(app):
+    _bootstrap_db(app)
 
     return app
