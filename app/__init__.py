@@ -39,7 +39,9 @@ def _database_url(instance_path: str) -> str:
 def create_app():
     app = Flask(__name__)
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
-
+    app.config["SESSION_FILE_DIR"] = os.path.join(app.instance_path, "flask-session")
+    
+    Path(app.config["SESSION_FILE_DIR"]).mkdir(parents=True, exist_ok=True)
     db_url = _database_url(app.instance_path)
 
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
