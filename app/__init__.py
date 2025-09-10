@@ -1,22 +1,23 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_session import Session
+from flask_session import Session as ServerSession
 from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager
 from flask_migrate import Migrate
 import logging
 from datetime import timedelta
 from pathlib import Path
+from sqlalchemy.exc import IntegrityError
 import os
 from sqlalchemy import inspect
-
+from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 load_dotenv()  # will pick up the same .env in dev
 # Initialize extensions
 db = SQLAlchemy()
 csrf = CSRFProtect()
 login_manager = LoginManager()
-session = Session()
+server_session = ServerSession()
 migrate = Migrate()
 
 
@@ -44,7 +45,7 @@ def create_app():
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
-    session.init_app(app)
+    server_session.init_app(app)
     migrate.init_app(app, db)
 
     login_manager.login_view = 'auth.login'
@@ -65,17 +66,30 @@ def create_app():
     def _bootstrap_db(app):
         with app.app_context():
             insp = inspect(db.engine)
-            # create tables if missing
-            if 'user' not in insp.get_table_names():
+            if "user" not in insp.get_table_names():
                 db.create_all()
-                # optional: seed a login so you can get in after every redeploy
-                username = os.getenv("BOOTSTRAP_USERNAME", "demo")
-                password = os.getenv("BOOTSTRAP_PASSWORD", "demo123")
-                u = User(username=username, name="Demo User")
-                u.set_password(password)  # whatever your model uses
-                db.session.add(u)
+
+            username = os.getenv("BOOTSTRAP_USERNAME", "demo")
+            password = os.getenv("BOOTSTRAP_PASSWORD", "demo123")
+
+            existing = User.query.filter_by(username=username).first()
+            if existing:
+                return
+
+            u = User(username=username, name="Demo User")
+            # prefer model helper if present, else set hash directly
+            if hasattr(u, "set_password") and callable(getattr(u, "set_password")):
+                u.set_password(password)
+            else:
+                u.hash = generate_password_hash(password)
+
+            db.session.add(u)
+            try:
                 db.session.commit()
                 print(f"[bootstrap] Created demo user: {username}/{password}")
+            except IntegrityError:
+                db.session.rollback()
+                print("[bootstrap] User already exists; skipped")
 
     # in create_app() **after** db.init_app(app):
     _bootstrap_db(app)
