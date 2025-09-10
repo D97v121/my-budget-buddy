@@ -12,6 +12,8 @@ import os
 from sqlalchemy import inspect
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
+from sqlalchemy.exc import IntegrityError
+from werkzeug.security import generate_password_hash
 load_dotenv()  # will pick up the same .env in dev
 # Initialize extensions
 db = SQLAlchemy()
@@ -89,9 +91,43 @@ def create_app():
                 print(f"[bootstrap] Created demo user: {username}/{password}")
             except IntegrityError:
                 db.session.rollback()
-                print("[bootstrap] User already exists; skipped")
+                print("[bootflask --app wsgi runstrap] User already exists; skipped")
 
     # in create_app() **after** db.init_app(app):
     _bootstrap_db(app)
+    _ensure_demo_user(app)
+
+    # Health check: simple and cheap
+    @app.get("/healthz")
+    def healthz():
+        return "ok", 200
+
 
     return app
+
+def _ensure_demo_user(app):
+    """Create a demo user once, if missing. Safe to call every boot."""
+    from app import db
+    from app.models.user import User  # adjust import if your path differs
+
+    demo_username = os.getenv("DEMO_USERNAME", "demo")
+    demo_password = os.getenv("DEMO_PASSWORD", "demo123")
+
+    with app.app_context():
+        # create tables if they don't exist (harmless if they do)
+        db.create_all()
+
+        if User.query.filter_by(username=demo_username).first():
+            return  # already there
+
+        u = User(username=demo_username, name="Demo User")
+        # your model uses 'hash' for the password hash:
+        u.hash = generate_password_hash(demo_password)
+
+        db.session.add(u)
+        try:
+            db.session.commit()
+            print(f"[seed] Demo user created: {demo_username}/{demo_password}")
+        except IntegrityError:
+            db.session.rollback()
+            print("[seed] Demo user already exists; skipped")
