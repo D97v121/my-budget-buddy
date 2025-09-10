@@ -40,6 +40,10 @@ def create_app():
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["WTF_CSRF_ENABLED"] = True
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "connect_args": {"check_same_thread": False},  # needed when threads exist
+    }
     print("DB URI AT STARTUP:", app.config.get("SQLALCHEMY_DATABASE_URI"))
 
     # Initialize extensions
