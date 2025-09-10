@@ -25,87 +25,56 @@ migrate = Migrate()
 
 def create_app():
     app = Flask(__name__)
-
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
-    # App config
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(app.instance_path, "money.db")
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'super-secret-key'
-    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "super-secret-key")
+    app.config["SESSION_TYPE"] = "filesystem"
     app.config["SESSION_PERMANENT"] = False
     app.config["SESSION_USE_SIGNER"] = True
-    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_SECURE"] = True  # set False only if you’re truly on HTTP
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["WTF_CSRF_ENABLED"] = True
     app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_pre_ping": True,
-        "connect_args": {"check_same_thread": False},  # needed when threads exist
+        "connect_args": {"check_same_thread": False},
     }
-    print("DB URI AT STARTUP:", app.config.get("SQLALCHEMY_DATABASE_URI"))
 
-    # Initialize extensions
-    from app.models import User
+    # Init extensions
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
     server_session.init_app(app)
     migrate.init_app(app, db)
+    login_manager.login_view = "auth.login"
 
-    login_manager.login_view = 'auth.login'
+    # Consistent import
+    from app.models.user import User
 
     @login_manager.user_loader
     def load_user(user_id):
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
 
-    # ✅ Register Jinja filters from helpers
+    # Jinja filters
     from app.helpers import usd, timestamp_editor
     app.jinja_env.filters["usd"] = usd
     app.jinja_env.filters["timestamp_editor"] = timestamp_editor
 
-    # ✅ Register blueprints/routes
+    # --- Ensure tables + seed BEFORE routes ---
+    with app.app_context():
+        db.create_all()
+        _ensure_demo_user(app)
+
+    # Now register routes
     from app.routes import register_routes
     register_routes(app)
 
-    def _bootstrap_db(app):
-        with app.app_context():
-            insp = inspect(db.engine)
-            if "user" not in insp.get_table_names():
-                db.create_all()
-
-            username = os.getenv("BOOTSTRAP_USERNAME", "demo")
-            password = os.getenv("BOOTSTRAP_PASSWORD", "demo123")
-
-            existing = User.query.filter_by(username=username).first()
-            if existing:
-                return
-
-            u = User(username=username, name="Demo User")
-            # prefer model helper if present, else set hash directly
-            if hasattr(u, "set_password") and callable(getattr(u, "set_password")):
-                u.set_password(password)
-            else:
-                u.hash = generate_password_hash(password)
-
-            db.session.add(u)
-            try:
-                db.session.commit()
-                print(f"[bootstrap] Created demo user: {username}/{password}")
-            except IntegrityError:
-                db.session.rollback()
-                print("[bootflask --app wsgi runstrap] User already exists; skipped")
-
-    # in create_app() **after** db.init_app(app):
-    _bootstrap_db(app)
-    _ensure_demo_user(app)
-
-    # Health check: simple and cheap
     @app.get("/healthz")
     def healthz():
         return "ok", 200
-
 
     return app
 
