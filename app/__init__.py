@@ -81,7 +81,7 @@ def create_app():
     login_manager.login_view = "auth.login"
 
     # Import ALL model modules so metadata is registered
-    import app.models  # ensures every model/table is known to SQLAlchemy
+    from . import models  # ensures every model/table is known to SQLAlchemy
     from app.models.user import User  # keep for user_loader typing/lookup
 
     # --- SQLite safety net: create tables if fresh/empty (no-op if already present) ---
