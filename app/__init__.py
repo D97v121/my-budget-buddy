@@ -4,147 +4,131 @@ from flask_session import Session as ServerSession
 from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager
 from flask_migrate import Migrate
-from flask.cli import with_appcontext
-import click, os
+import logging
 from datetime import timedelta
 from pathlib import Path
-from sqlalchemy import inspect, text
 from sqlalchemy.exc import IntegrityError
+import os
+from sqlalchemy import inspect
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
-
-load_dotenv()
-
+from sqlalchemy.exc import IntegrityError
+from werkzeug.security import generate_password_hash
+load_dotenv()  # will pick up the same .env in dev
+# Initialize extensions
 db = SQLAlchemy()
 csrf = CSRFProtect()
 login_manager = LoginManager()
 server_session = ServerSession()
 migrate = Migrate()
 
-def _database_url(instance_path: str) -> str:
-    """
-    Priority:
-      1) SQLALCHEMY_DATABASE_URI (explicit)
-      2) DATABASE_URL (normalize postgres:// -> postgresql+psycopg://)
-      3) sqlite at /data (if persistent volume mounted)
-      4) sqlite in instance folder (dev/local)
-    """
-    url = os.getenv("SQLALCHEMY_DATABASE_URI") or os.getenv("DATABASE_URL")
-    if url:
-        if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql+psycopg://", 1)
-        return url
-
-    data_dir = "/data"
-    if os.path.isdir(data_dir):
-        return f"sqlite:///{os.path.join(data_dir, 'money.db')}"
-    return "sqlite:///" + os.path.join(instance_path, "money.db")
 
 def create_app():
     app = Flask(__name__)
+
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
-    # Sessions: persist if /data exists, else instance folder
-    session_dir = "/data/flask-session" if os.path.isdir("/data") \
-                  else os.path.join(app.instance_path, "flask-session")
-    Path(session_dir).mkdir(parents=True, exist_ok=True)
+    # App config
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(app.instance_path, "money.db")
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = 'super-secret-key'
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config["SESSION_PERMANENT"] = False
+    app.config["SESSION_USE_SIGNER"] = True
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["WTF_CSRF_ENABLED"] = True
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+    
+    print("DB URI AT STARTUP:", app.config.get("SQLALCHEMY_DATABASE_URI"))
 
-    db_url = _database_url(app.instance_path)
-
-    app.config.update(
-        SQLALCHEMY_DATABASE_URI=db_url,
-        SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        SECRET_KEY=os.getenv("SECRET_KEY", "super-secret-key"),
-        SESSION_TYPE="filesystem",
-        SESSION_FILE_DIR=session_dir,
-        SESSION_PERMANENT=False,
-        SESSION_USE_SIGNER=True,
-        # Optional: env-based secure cookies (True in prod by default)
-        SESSION_COOKIE_SECURE=os.getenv("FLASK_ENV", "production") == "production",
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE="Lax",
-        WTF_CSRF_ENABLED=True,
-        PERMANENT_SESSION_LIFETIME=timedelta(minutes=30),
-        SQLALCHEMY_ENGINE_OPTIONS=(
-            {"pool_pre_ping": True, "connect_args": {"check_same_thread": False}}
-            if db_url.startswith("sqlite:///")
-            else {"pool_pre_ping": True}
-        ),
-    )
-
-    # Init extensions
+    # Initialize extensions
+    from app.models import User
     db.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
     server_session.init_app(app)
     migrate.init_app(app, db)
-    login_manager.login_view = "auth.login"
 
-    # Import ALL model modules so metadata is registered
-    from . import models  # ensures every model/table is known to SQLAlchemy
-    from app.models.user import User  # keep for user_loader typing/lookup
-
-    # --- SQLite safety net: create tables if fresh/empty (no-op if already present) ---
-    with app.app_context():
-        if db.engine.url.get_backend_name() == "sqlite":
-            insp = inspect(db.engine)
-            # Check for one known table; change "user" if your metadata differs
-            if not insp.has_table("user"):
-                db.create_all()
+    login_manager.login_view = 'auth.login'
 
     @login_manager.user_loader
     def load_user(user_id):
-        return db.session.get(User, int(user_id))
+        return User.query.get(int(user_id))
 
-    # Jinja filters
+    # ✅ Register Jinja filters from helpers
     from app.helpers import usd, timestamp_editor
     app.jinja_env.filters["usd"] = usd
     app.jinja_env.filters["timestamp_editor"] = timestamp_editor
 
-    # Register routes AFTER extensions/models are ready
+    # ✅ Register blueprints/routes
     from app.routes import register_routes
     register_routes(app)
 
-    # Health checks
+    def _bootstrap_db(app):
+        with app.app_context():
+            insp = inspect(db.engine)
+            if "user" not in insp.get_table_names():
+                db.create_all()
+
+            username = os.getenv("BOOTSTRAP_USERNAME", "demo")
+            password = os.getenv("BOOTSTRAP_PASSWORD", "demo123")
+
+            existing = User.query.filter_by(username=username).first()
+            if existing:
+                return
+
+            u = User(username=username, name="Demo User")
+            # prefer model helper if present, else set hash directly
+            if hasattr(u, "set_password") and callable(getattr(u, "set_password")):
+                u.set_password(password)
+            else:
+                u.hash = generate_password_hash(password)
+
+            db.session.add(u)
+            try:
+                db.session.commit()
+                print(f"[bootstrap] Created demo user: {username}/{password}")
+            except IntegrityError:
+                db.session.rollback()
+                print("[bootflask --app wsgi runstrap] User already exists; skipped")
+
+    # in create_app() **after** db.init_app(app):
+    _bootstrap_db(app)
+    _ensure_demo_user(app)
+
+    # Health check: simple and cheap
     @app.get("/healthz")
     def healthz():
         return "ok", 200
 
-    @app.get("/readyz")
-    def readyz():
-        try:
-            # Very light DB touch; fine for SQLite and Postgres
-            db.session.execute(text("SELECT 1"))
-            return "ready", 200
-        except Exception:
-            return "not ready", 503
 
-    _register_cli_commands(app)
     return app
 
-def _register_cli_commands(app):
-    @app.cli.command("init-db")
-    @with_appcontext
-    def init_db():
-        """Create all tables (use for manual setup)."""
-        db.create_all()
-        click.echo("✔ Database initialized")
+def _ensure_demo_user(app):
+    """Create a demo user once, if missing. Safe to call every boot."""
+    from app import db
+    from app.models.user import User  # adjust import if your path differs
 
-    @app.cli.command("seed-demo")
-    @with_appcontext
-    def seed_demo():
-        """Seed a demo user once; safe to re-run (idempotent)."""
-        from app.models.user import User
-        demo_username = os.getenv("DEMO_USERNAME", "demo")
-        demo_password = os.getenv("DEMO_PASSWORD", "demo123")
+    demo_username = os.getenv("DEMO_USERNAME", "demo")
+    demo_password = os.getenv("DEMO_PASSWORD", "demo123")
+
+    with app.app_context():
+        # create tables if they don't exist (harmless if they do)
+        db.create_all()
+
         if User.query.filter_by(username=demo_username).first():
-            click.echo("ℹ Demo user already exists; skipped"); return
+            return  # already there
+
         u = User(username=demo_username, name="Demo User")
+        # your model uses 'hash' for the password hash:
         u.hash = generate_password_hash(demo_password)
+
         db.session.add(u)
         try:
             db.session.commit()
-            click.echo(f"✔ Demo user created: {demo_username}/{demo_password}")
+            print(f"[seed] Demo user created: {demo_username}/{demo_password}")
         except IntegrityError:
             db.session.rollback()
-            click.echo("ℹ Demo user exists; skipped")
+            print("[seed] Demo user already exists; skipped")

@@ -53,5 +53,7 @@ def register_routes(app):
 
     from app.routes.nlp_api import nlp_api
     app.register_blueprint(nlp_api)
+    from health import bp as health_bp
+    app.register_blueprint(health_bp)
 
 
