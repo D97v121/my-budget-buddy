@@ -20,7 +20,7 @@ Flask · SQLAlchemy · Gunicorn · DigitalOcean App Platform (Postgres-ready)
 - Reliability: health check route, idempotent DB bootstrap, safe defaults for demo mode  
 - Security basics: secrets via env vars, CSRF enabled, HTTPOnly/SameSite cookies  
 - Clean structure: Blueprints for routes/services; easy to extend to Postgres + migrations  
-
+  
 ## Quick Start (demo mode — no Plaid setup)
 ```bash
 git clone https://github.com/<D97v121>/My-Budget-Buddy.git
@@ -30,14 +30,12 @@ flask --app wsgi run --debug
 
 A demo user (demo / demo123) is seeded on first run.
 ```
-
-##Roadmap
-
+## Roadmap
 - Migrate prod DB to Postgres with Alembic migrations
 - Add pytest coverage for routes/services
 - Build charts & insights (categorization, trends, cash flow)
 - Complete AI integration
-
+  
 ## Project Structure
 
 ├── .gitignore  
