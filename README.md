@@ -19,62 +19,7 @@ Flask · SQLAlchemy · Gunicorn · DigitalOcean App Platform (Postgres-ready)
 - Productionized Flask: WSGI entrypoint (`wsgi.py`) + Procfile + Gunicorn configuration  
 - Reliability: health check route, idempotent DB bootstrap, safe defaults for demo mode  
 - Security basics: secrets via env vars, CSRF enabled, HTTPOnly/SameSite cookies  
-- Clean structure: Blueprints for routes/services; easy to extend to Postgres + migrations
-
-  ## Roadmap
-
-- Switch prod to Postgres with Alembic migrations
-- Tests (pytest) for routes/services
-- Charts & insights (categorization, trends, cash-flow)
-- Full AI integration
-
-## Project Structure
-.  
-├── .gitignore  
-├── .python-version  
-├── .vscode/  
-├── app/  
-│   ├── __init__.py  
-│   ├── ai_helpers.py  
-│   ├── encryption_utils.py  
-│   ├── filters.py  
-│   ├── forms.py  
-│   ├── health.py  
-│   ├── helpers.py  
-│   ├── models/  
-│   ├── plaid_helpers.py  
-│   ├── routes/  
-│   ├── static/  
-│   └── templates/  
-├── archive/  
-│   ├── quick_fixes.py  
-│   └── temporary.py  
-├── instance/  
-│   └── money.db  
-├── main.py  
-├── migrations/  
-│   ├── alembic.ini  
-│   ├── env.py  
-│   ├── README  
-│   ├── script.py.mako  
-│   └── versions/  
-├── models.py  
-├── my_budget_buddy.db  
-├── Procfile  
-├── quickstart/  
-│   ├── .env.example  
-│   ├── docker-compose.yml  
-│   ├── frontend/  
-│   ├── go/  
-│   ├── java/  
-│   ├── node/  
-│   ├── python/  
-│   ├── ruby/  
-│   └── README.md  
-├── requirements.txt  
-├── server.nginx  
-├── workspace/  
-└── wsgi.py  
+- Clean structure: Blueprints for routes/services; easy to extend to Postgres + migrations  
 
 ## Quick Start (demo mode — no Plaid setup)
 ```bash
@@ -82,6 +27,3 @@ git clone https://github.com/<D97v121>/My-Budget-Buddy.git
 cd My-Budget-Buddy && python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 flask --app wsgi run --debug
-
-
-
