@@ -5,6 +5,8 @@ from flask_wtf.csrf import CSRFProtect
 from flask_login import LoginManager
 from flask_migrate import Migrate
 import logging
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from datetime import timedelta
 from pathlib import Path
 from sqlalchemy.exc import IntegrityError
@@ -29,6 +31,9 @@ def create_app():
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
     # App config
+    DATA_DIR = os.getenv("DATA_DIR", "/data")
+    os.makedirs(DATA_DIR, exist_ok=True)
+
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(app.instance_path, "money.db")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'super-secret-key'
@@ -36,6 +41,7 @@ def create_app():
     app.config["SESSION_PERMANENT"] = False
     app.config["SESSION_USE_SIGNER"] = True
     app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["REMEMBER_COOKIE_SECURE"] = True
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["WTF_CSRF_ENABLED"] = True
@@ -68,6 +74,13 @@ def create_app():
 
     from app.health import bp as health_bp
     app.register_blueprint(health_bp)
+
+    @event.listens_for(Engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.execute("PRAGMA foreign_keys=ON;")
+        cursor.close()
 
     def _bootstrap_db(app):
         with app.app_context():

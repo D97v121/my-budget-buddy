@@ -41,11 +41,11 @@ configuration = Configuration(
     }
 )
 
+
 api_client = ApiClient(configuration)
 client = plaid_api.PlaidApi(api_client)
 
 print(f"Using Client ID: {PLAID_CLIENT_ID}")
-print(f"Using Secret: {PLAID_SECRET[:4]}...")
 print(f"Using Environment: {PLAID_ENV}")
 
 

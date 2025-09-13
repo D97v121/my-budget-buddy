@@ -8,6 +8,7 @@ from app.helpers import populate_tags
 import logging
 from app import db, csrf
 from werkzeug.security import generate_password_hash
+from datetime import timedelta
 from flask_login import login_user
 
 auth_bp = Blueprint('auth', __name__)
@@ -27,7 +28,7 @@ def login():
             return render_template("login.html", form=form, error_message="Incorrect username or password")
 
         # ✅ Log the user in properly
-        login_user(user)
+        login_user(user, remember=True, duration=timedelta(days=30))
 
         # Optional: regenerate CSRF and redirect
         session["csrf_token"] = generate_csrf()
