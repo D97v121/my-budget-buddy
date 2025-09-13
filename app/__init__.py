@@ -66,6 +66,9 @@ def create_app():
     from app.routes import register_routes
     register_routes(app)
 
+    from app.health import bp as health_bp
+    app.register_blueprint(health_bp)
+
     def _bootstrap_db(app):
         with app.app_context():
             insp = inspect(db.engine)
