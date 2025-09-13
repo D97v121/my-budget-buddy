@@ -1,9 +1,13 @@
 My-Budget-Buddy (MBB)
 
 What & Why
-My-Budget-Buddy is a personal finance web app that turns bank transactions into simple, actionable budgets. I built it to practice end-to-end engineering—clean Flask architecture, a small budgeting engine, and a production deployment on DigitalOcean. The demo runs without account linking so reviewers can explore quickly.
 
-Live (demo): https://www.my-budget-buddy.com
+My-Budget-Buddy is a personal finance web app that turns bank transactions into simple, actionable budgets and integrates AI fully into the site so that users can easily interact with their data. I built it to practice end-to-end engineering. The demo runs without account linking so reviewers can explore quickly. Much of the site is still a work in progress. I am figuring out how to integrate the AI correctly right now. Further, the site is set up to be able to run using larger databases (probably through digital ocean in the end) and work with all bank accounts, however, due to funding, I do not have access to certain banks yet and am waiting to integrate more fully with DO.
+
+Live (demo): https://www.my-budget-buddy.com 
+Here is a temporary login with one bank account already linked:
+username: demo
+password: demo123
 
 Tech: Flask · SQLAlchemy · Gunicorn · DigitalOcean App Platform (Postgres-ready)
 
@@ -26,12 +30,6 @@ flask --app wsgi run --debug
 
 A demo user is seeded on first run (e.g., demo / demo123) so you can log in immediately.
 
-Screenshots
-
-(Optional — include 1–3 images in docs/screenshots/)
-
-
-
 
 Roadmap
 
@@ -40,3 +38,6 @@ Switch prod to Postgres with Alembic migrations
 Tests (pytest) for routes/services
 
 Charts & insights (categorization, trends, cash-flow)
+
+Full AI integration
+
