@@ -27,10 +27,10 @@ git clone https://github.com/<D97v121>/My-Budget-Buddy.git
 cd My-Budget-Buddy && python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 flask --app wsgi run --debug
-
+```
 
 A demo user (demo / demo123) is seeded on first run.
-'''
+
 
 
 ## Project Structure
