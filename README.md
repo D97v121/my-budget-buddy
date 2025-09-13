@@ -30,10 +30,11 @@ flask --app wsgi run --debug
 
 
 A demo user (demo / demo123) is seeded on first run.
+'''
 
-Project Structure
 
-.
+## Project Structure
+
 ├── .gitignore
 ├── .python-version
 ├── .vscode/
@@ -80,12 +81,9 @@ Project Structure
 ├── workspace/
 └── wsgi.py # WSGI entrypoint
 
-Roadmap
+##Roadmap
 
-Migrate prod DB to Postgres with Alembic migrations
-
-Add pytest coverage for routes/services
-
-Build charts & insights (categorization, trends, cash flow)
-
-Complete AI integration
+- Migrate prod DB to Postgres with Alembic migrations
+- Add pytest coverage for routes/services
+- Build charts & insights (categorization, trends, cash flow)
+- Complete AI integration
