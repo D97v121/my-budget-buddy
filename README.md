@@ -27,59 +27,9 @@ git clone https://github.com/<D97v121>/My-Budget-Buddy.git
 cd My-Budget-Buddy && python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 flask --app wsgi run --debug
-```
 
 A demo user (demo / demo123) is seeded on first run.
-
-
-
-## Project Structure
-
-├── .gitignore
-├── .python-version
-├── .vscode/
-├── app/
-│ ├── init.py
-│ ├── ai_helpers.py
-│ ├── encryption_utils.py
-│ ├── filters.py
-│ ├── forms.py
-│ ├── health.py
-│ ├── helpers.py
-│ ├── models/
-│ ├── plaid_helpers.py
-│ ├── routes/
-│ ├── static/
-│ └── templates/
-├── archive/
-│ ├── quick_fixes.py
-│ └── temporary.py
-├── instance/
-│ └── money.db
-├── main.py # Local app runner
-├── migrations/
-│ ├── alembic.ini
-│ ├── env.py
-│ ├── README
-│ ├── script.py.mako
-│ └── versions/
-├── models.py
-├── my_budget_buddy.db
-├── Procfile # Gunicorn config
-├── quickstart/
-│ ├── .env.example
-│ ├── docker-compose.yml
-│ ├── frontend/
-│ ├── go/
-│ ├── java/
-│ ├── node/
-│ ├── python/
-│ ├── ruby/
-│ └── README.md
-├── requirements.txt
-├── server.nginx
-├── workspace/
-└── wsgi.py # WSGI entrypoint
+```
 
 ##Roadmap
 
@@ -87,3 +37,51 @@ A demo user (demo / demo123) is seeded on first run.
 - Add pytest coverage for routes/services
 - Build charts & insights (categorization, trends, cash flow)
 - Complete AI integration
+
+## Project Structure
+
+├── .gitignore  
+├── .python-version  
+├── .vscode/  
+├── app/  
+│   ├── __init__.py  
+│   ├── ai_helpers.py  
+│   ├── encryption_utils.py  
+│   ├── filters.py  
+│   ├── forms.py  
+│   ├── health.py  
+│   ├── helpers.py  
+│   ├── models/  
+│   ├── plaid_helpers.py  
+│   ├── routes/  
+│   ├── static/  
+│   └── templates/  
+├── archive/  
+│   ├── quick_fixes.py  
+│   └── temporary.py  
+├── instance/  
+│   └── money.db  
+├── main.py  
+├── migrations/  
+│   ├── alembic.ini  
+│   ├── env.py  
+│   ├── README  
+│   ├── script.py.mako  
+│   └── versions/  
+├── models.py  
+├── my_budget_buddy.db  
+├── Procfile  
+├── quickstart/  
+│   ├── .env.example  
+│   ├── docker-compose.yml  
+│   ├── frontend/  
+│   ├── go/  
+│   ├── java/  
+│   ├── node/  
+│   ├── python/  
+│   ├── ruby/  
+│   └── README.md  
+├── requirements.txt  
+├── server.nginx  
+├── workspace/  
+└── wsgi.py  
