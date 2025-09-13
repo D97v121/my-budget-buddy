@@ -19,17 +19,9 @@ Flask · SQLAlchemy · Gunicorn · DigitalOcean App Platform (Postgres-ready)
 - Productionized Flask: WSGI entrypoint (`wsgi.py`) + Procfile + Gunicorn configuration  
 - Reliability: health check route, idempotent DB bootstrap, safe defaults for demo mode  
 - Security basics: secrets via env vars, CSRF enabled, HTTPOnly/SameSite cookies  
-- Clean structure: Blueprints for routes/services; easy to extend to Postgres + migrations  
+- Clean structure: Blueprints for routes/services; easy to extend to Postgres + migrations
 
-## Quick Start (demo mode — no Plaid setup)
-```bash
-git clone https://github.com/<D97v121>/My-Budget-Buddy.git
-cd My-Budget-Buddy && python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-flask --app wsgi run --debug
-
-
-## Roadmap
+  ## Roadmap
 
 - Switch prod to Postgres with Alembic migrations
 - Tests (pytest) for routes/services
@@ -83,3 +75,13 @@ flask --app wsgi run --debug
 ├── server.nginx  
 ├── workspace/  
 └── wsgi.py  
+
+## Quick Start (demo mode — no Plaid setup)
+```bash
+git clone https://github.com/<D97v121>/My-Budget-Buddy.git
+cd My-Budget-Buddy && python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+flask --app wsgi run --debug
+
+
+
