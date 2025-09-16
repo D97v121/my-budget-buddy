@@ -31,7 +31,7 @@ def create_app():
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
 
     # App config
-    DATA_DIR = os.getenv("DATA_DIR", "/data")
+    DATA_DIR = os.getenv("DATA_DIR", "/tmp/data")
     os.makedirs(DATA_DIR, exist_ok=True)
 
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(app.instance_path, "money.db")
