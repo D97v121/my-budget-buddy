@@ -30,7 +30,7 @@
 </nav>
 
 <div class="container" style="width:600px; padding-right:100px;">
-    <form id="tagForm" action="/settings/tags" method="post">
+    <form id="tagForm" action="{{ url_for('settings.tags') }}" method="post">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
         <table id="tagTable" class="table table-bordered table-striped">
             {% for tag in tags %}
@@ -39,14 +39,13 @@
                         <input type="hidden" name="tag_id_{{ tag.id }}" value="{{ tag.id }}">
                         <div>
                             <input type="checkbox" id="select_{{ tag.id }}" name="select_{{ tag.id }}" class="checkbox">
-                            <input class="color-circle" name="color_{{ tag.id }}" id="colorCircle_{{ tag.id }}" type="color" value="{{ tag.color_id }}"></input>
+                            <input class="color-circle" name="color_{{ tag.id }}" id="colorCircle_{{ tag.id }}" type="color" value="{{ tag.color.color_hex if tag.color else '#000000' }}"></input>
                             <input type="text" id="tagName_{{ tag.id }}" name="tagName_{{ tag.id }}" placeholder="Tag Name" value="{{ tag.name }}" required>
                             
                             <label for="tagStatus_{{ tag.id }}">Active:</label>
                             <input class="checkbox" type="checkbox" id="tagStatus_{{ tag.id }}" name="tagStatus_{{ tag.id }}" {% if tag.status %}checked{% endif %}>
                         
                         </div>
-                        <input type="hidden" id="tagColor_{{ tag.id }}" name="tagColor_{{ tag.id }}" placeholder="Tag Color" value="{{ tag.color_id }}">   
                     </td>
                 </tr>
             {% endfor %}     
@@ -72,6 +71,11 @@
     const deleteForm = document.createElement('form');
     deleteForm.method = 'post';
     deleteForm.action = '/delete_tags';
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrf_token';
+    csrfInput.value = "{{ csrf_token }}";  // Jinja injects the token
+    deleteForm.appendChild(csrfInput);
 
     const checkboxes = document.querySelectorAll('input[type="checkbox"][id^="select_"]:checked');
     checkboxes.forEach(checkbox => {

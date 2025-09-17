@@ -30,24 +30,31 @@ def tags():
     if request.method == "POST":
         for tag in tags:
             tag_id = tag.id
-            tag.color_id = request.form.get(f'color_{tag_id}')
+
+            # update name & status
             tag.name = request.form.get(f'tagName_{tag_id}')
             tag.status = f'tagStatus_{tag_id}' in request.form
+
+            # convert hex from form -> TagColor row -> assign .id
+            color_hex = (request.form.get(f'color_{tag_id}') or '').strip().lower()
+            if color_hex:
+                if not color_hex.startswith('#'):
+                    color_hex = '#' + color_hex
+                color_hex = '#' + color_hex.lstrip('#')[:6]
+
+                color_row = TagColor.query.filter_by(user_id=user_id, color_hex=color_hex).first()
+                if not color_row:
+                    color_row = TagColor(user_id=user_id, color_name=color_hex, color_hex=color_hex)
+                    db.session.add(color_row)
+                    db.session.flush()
+
+                tag.color_id = color_row.id  # ✅ use INT FK
+
         db.session.commit()
-
-        if request.form.get('tagName_new'):
-            new_tag = Tags(
-                user_id=user_id,
-                color_id=request.form.get('color_new'),
-                name=request.form.get('tagName_new'),
-                status='tagStatus_new' in request.form
-            )
-            db.session.add(new_tag)
-            db.session.commit()
-
         return redirect(url_for('settings.tags'))
 
     return render_template("settings/tags.html", tags=tags, tag_colors=tag_colors, csrf_token=csrf_token)
+
 
 @settings_bp.route('/delete_tags', methods=["POST"])
 @login_required
@@ -65,32 +72,56 @@ def delete_tags():
 @login_required
 def add_tag():
     user_id = current_user.id
+    tag_name = (request.form.get('tagName_new') or '').strip()
+    color_hex = (request.form.get('color_new') or '').strip().lower()
 
-    color_hex = request.form.get('color_new')   # e.g. "#0000ff"
-    tag_name = request.form.get('tagName_new')
+    if not tag_name or not color_hex:
+        return redirect(url_for('settings.tags'))
 
-    if tag_name and color_hex:
-        # 1. Find or create the TagColor for this user
+    # simple hex validation
+    if len(color_hex) != 7 or not color_hex.startswith('#'):
+        color_hex = f"#{color_hex.lstrip('#')[:6].lower()}"
+
+    # find or create TagColor for this user
+    tag_color = TagColor.query.filter_by(user_id=user_id, color_hex=color_hex).first()
+    if not tag_color:
+        tag_color = TagColor(user_id=user_id, color_name=color_hex, color_hex=color_hex)
+        db.session.add(tag_color)
+        db.session.flush()  # get tag_color.id now
+
+    # create tag referencing color_id (INT)
+    new_tag = Tags(user_id=user_id, name=tag_name, status=True, color_id=tag_color.id)
+    db.session.add(new_tag)
+    db.session.commit()
+
+    return redirect(url_for('settings.tags'))
+
+@settings_bp.route('/settings/tags', methods=['POST'])
+@login_required
+def update_tag():
+    user_id   = current_user.id
+    tag_id    = request.form.get('tag_id', type=int)
+    tag_name  = (request.form.get('tag_name') or '').strip()
+    color_hex = (request.form.get('color_hex') or '').strip().lower()
+
+    tag = Tags.query.filter_by(id=tag_id, user_id=user_id).first_or_404()
+
+    # optional name update
+    if tag_name:
+        tag.name = tag_name
+
+    # resolve color_hex -> TagColor.id
+    if color_hex:
+        if len(color_hex) != 7 or not color_hex.startswith('#'):
+            color_hex = f"#{color_hex.lstrip('#')[:6].lower()}"
         tag_color = TagColor.query.filter_by(user_id=user_id, color_hex=color_hex).first()
         if not tag_color:
-            tag_color = TagColor(
-                user_id=user_id,
-                color_name=color_hex,   # or a prettier name from your form
-                color_hex=color_hex
-            )
+            tag_color = TagColor(user_id=user_id, color_name=color_hex, color_hex=color_hex)
             db.session.add(tag_color)
-            db.session.flush()  # makes tag_color.id available immediately
+            db.session.flush()
+        tag.color_id = tag_color.id  # <-- INT FK
 
-        # 2. Create the Tag with the integer FK
-        new_tag = Tags(
-            user_id=user_id,
-            color_id=tag_color.id,
-            name=tag_name,
-            status=True
-        )
-        db.session.add(new_tag)
-        db.session.commit()
-
+    db.session.commit()
     return redirect(url_for('settings.tags'))
 
 
