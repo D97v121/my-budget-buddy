@@ -8,40 +8,49 @@ from flask_login import current_user
 
 dev_bp = Blueprint('dev', __name__)
 
-@dev_bp.route('/delete_transactions', methods=['GET', 'POST'])
+@dev_bp.route('/delete_transactions', methods=['GET'])  # ← safer: POST only
 @login_required
 def delete_transactions():
     try:
-        # Confirm the user is authenticated
         user_id = current_user.id
         if not user_id:
             logging.warning("Attempt to delete transactions without being logged in.")
             return jsonify({"error": "User not logged in"}), 401
 
-        # Log the operation
         logging.info(f"User {user_id} is deleting all transactions.")
 
-        # Retrieve all transactions for the user
-        transactions_to_delete = Transaction.query.filter_by(user_id=user_id).all()
+        # 1) Collect this user's transaction IDs
+        tx_ids = db.session.scalars(
+            db.select(Transaction.id).where(Transaction.user_id == user_id)
+        ).all()
 
-        # Clear all tag associations
-        for transaction in transactions_to_delete:
-            transaction.tags.clear()
-        db.session.commit()  # Commit tag association removal first
+        if not tx_ids:
+            logging.info("No transactions to delete.")
+            return jsonify({"status": "success", "deleted_count": 0}), 200
 
-        # Delete all transactions
-        deleted_count = Transaction.query.filter_by(user_id=user_id).delete()
-        db.session.commit()  # Commit transaction deletion
+        # 2) Delete association rows FIRST (prevents FK failures)
+        from app.models.association_tables import transaction_tags
+        db.session.execute(
+            transaction_tags.delete().where(transaction_tags.c.transaction_id.in_(tx_ids))
+        )
 
-        logging.info(f"Successfully deleted {deleted_count} transactions and associated data from the database.")
+        # If you have other child tables referencing Transaction.id (e.g., splits, attachments),
+        # delete them here too before deleting the parent rows.
 
-        # Return a success response
-        return jsonify({"status": "success", "deleted_count": deleted_count}), 200
+        # 3) Delete the transactions themselves
+        deleted = db.session.execute(
+            db.delete(Transaction).where(Transaction.id.in_(tx_ids))
+        ).rowcount
+
+        db.session.commit()
+        logging.info(f"Successfully deleted {deleted} transactions (and associations).")
+        return jsonify({"status": "success", "deleted_count": deleted}), 200
 
     except Exception as e:
         logging.error(f"Error deleting transactions: {e}", exc_info=True)
         db.session.rollback()
         return jsonify({"error": "Failed to delete transactions"}), 500
+
 
     
 @dev_bp.route('/delete_all_plaid_items', methods=['GET', 'POST'])
