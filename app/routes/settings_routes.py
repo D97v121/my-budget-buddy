@@ -66,20 +66,33 @@ def delete_tags():
 def add_tag():
     user_id = current_user.id
 
-    new_tag_color = request.form.get('color_new')
-    new_tag_name = request.form.get('tagName_new')
+    color_hex = request.form.get('color_new')   # e.g. "#0000ff"
+    tag_name = request.form.get('tagName_new')
 
-    if new_tag_name and new_tag_color:
+    if tag_name and color_hex:
+        # 1. Find or create the TagColor for this user
+        tag_color = TagColor.query.filter_by(user_id=user_id, color_hex=color_hex).first()
+        if not tag_color:
+            tag_color = TagColor(
+                user_id=user_id,
+                color_name=color_hex,   # or a prettier name from your form
+                color_hex=color_hex
+            )
+            db.session.add(tag_color)
+            db.session.flush()  # makes tag_color.id available immediately
+
+        # 2. Create the Tag with the integer FK
         new_tag = Tags(
             user_id=user_id,
-            color_id=new_tag_color,
-            name=new_tag_name,
+            color_id=tag_color.id,
+            name=tag_name,
             status=True
         )
         db.session.add(new_tag)
         db.session.commit()
 
     return redirect(url_for('settings.tags'))
+
 
 @settings_bp.route("/account", methods=["GET", "POST"])
 @login_required
