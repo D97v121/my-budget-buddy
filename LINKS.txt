@@ -1,0 +1,15 @@
+GitHub Profile
+https://github.com/<D97v121>
+
+Project Repo
+https://github.com/<D97v121>/My-Budget-Buddy
+
+Live Demo
+https://my-budget-buddy-mgzfh.ondigitalocean.app/
+
+Key Files
+App factory & bootstrap: https://github.com/D97v121/My-Budget-Buddy/blob/main/app/__init__.py
+WSGI entrypoint:         https://github.com/D97v121/My-Budget-Buddy/blob/main/wsgi.py
+Auth/Login route:        https://github.com/D97v121/My-Budget-Buddy/blob/main/app/routes/auth_routes.py
+Plaid helpers/guard:     https://github.com/D97v121/My-Budget-Buddy/blob/main/app/plaid_helpers.py
+Procfile:                https://github.com/D97v121/My-Budget-Buddy/blob/main/Procfile
