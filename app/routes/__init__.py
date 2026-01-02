@@ -54,5 +54,7 @@ def register_routes(app):
     from app.routes.nlp_api import nlp_api
     app.register_blueprint(nlp_api)
     
+    from app.routes.remove_all_plaid_items import admin_bp
+    app.register_blueprint(admin_bp)
 
 
