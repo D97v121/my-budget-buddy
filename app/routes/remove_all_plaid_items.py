@@ -5,6 +5,7 @@ from plaid.exceptions import ApiException
 from app import db
 from app.models.plaid import PlaidItem
 from app.plaid_helpers import client
+from app import csrf
 
 admin_bp = Blueprint("admin_bp", __name__)
 
@@ -24,6 +25,7 @@ def _authorized():
     return True
 
 @admin_bp.route("/admin/plaid/remove_all_items", methods=["POST"])
+@csrf.exempt
 def remove_all_plaid_items():
     if not _authorized():
         return jsonify({"error": "Not authorized"}), 403
