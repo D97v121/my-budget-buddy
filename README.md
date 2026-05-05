@@ -1,19 +1,19 @@
 # My-Budget-Buddy (MBB)
 
 ## What & Why
-My-Budget-Buddy is a personal finance web app that turns bank transactions into simple, actionable budgets and integrates AI fully into the site so that users can easily interact with their data.  
+My-Budget-Buddy is a full-stack personal finance web app that connects to real bank accounts via the Plaid API, tracks transactions, and helps users visualize and manage their spending across budget categories. It also features a fully integrated AI assistant that lets users interact with and query their financial data conversationally.
 
-I built it to practice end-to-end engineering. The demo runs without account linking so reviewers can explore quickly. Much of the site is still a work in progress. I am figuring out how to integrate the AI correctly right now.  
-
-Further, the site is set up to be able to run using larger databases (probably through DigitalOcean in the end) and work with all bank accounts, however, due to funding, I do not have access to certain banks yet and am waiting to integrate more fully with DO.  
-
-Live (demo): https://www.my-budget-buddy.com  
+Live (demo): https://my-budget-buddy-mgzfh.ondigitalocean.app/
 Temporary login with one bank account already linked:  
 `username: demo`  
 `password: demo123`
 
+Note: The demo uses Plaid's sandbox environment, so all bank data is simulated -- no real accounts are linked.
+
+<img width="1470" height="795" alt="Screenshot 2026-05-05 at 3 34 49 PM" src="https://github.com/user-attachments/assets/3452ee86-5f54-4e43-8591-54351539d21c" />
+
 ## Tech
-Flask · SQLAlchemy · Gunicorn · DigitalOcean App Platform (Postgres-ready)
+Flask · SQLAlchemy · DigitalOcean App Platform (Postgres-ready)
 
 ## Highlights
 - Productionized Flask: WSGI entrypoint (`wsgi.py`) + Procfile + Gunicorn configuration  
@@ -23,13 +23,13 @@ Flask · SQLAlchemy · Gunicorn · DigitalOcean App Platform (Postgres-ready)
   
 ## Quick Start (demo mode — no Plaid setup)
 ```bash
-git clone https://github.com/<D97v121>/My-Budget-Buddy.git
+git clone github.com/D97v121/My-Budget-Buddy.git
 cd My-Budget-Buddy && python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 flask --app wsgi run --debug
-
-A demo user (demo / demo123) is seeded on first run.
 ```
+A demo user (demo / demo123) is seeded on first run.
+
 ## Roadmap
 - Migrate prod DB to Postgres with Alembic migrations
 - Add pytest coverage for routes/services
@@ -53,10 +53,7 @@ A demo user (demo / demo123) is seeded on first run.
 │   ├── plaid_helpers.py  
 │   ├── routes/  
 │   ├── static/  
-│   └── templates/  
-├── archive/  
-│   ├── quick_fixes.py  
-│   └── temporary.py  
+│   └── templates/   
 ├── instance/  
 │   └── money.db  
 ├── main.py  
@@ -68,18 +65,6 @@ A demo user (demo / demo123) is seeded on first run.
 │   └── versions/  
 ├── models.py  
 ├── my_budget_buddy.db  
-├── Procfile  
-├── quickstart/  
-│   ├── .env.example  
-│   ├── docker-compose.yml  
-│   ├── frontend/  
-│   ├── go/  
-│   ├── java/  
-│   ├── node/  
-│   ├── python/  
-│   ├── ruby/  
-│   └── README.md  
-├── requirements.txt  
-├── server.nginx  
-├── workspace/  
+├── Procfile   
+├── requirements.txt     
 └── wsgi.py  
