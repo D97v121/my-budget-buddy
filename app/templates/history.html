@@ -1,0 +1,881 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<!-- Main Content -->
+<main>
+    <div class="mainHistory">
+        <h2 class="text-center">Transactions</h2>
+
+        <!-- Search Bar -->
+        <div class="search-container text-center">
+            <input type="text" id="search-bar" placeholder="Search transactions..." class="form-control d-inline-block mb-3" style="max-width: 400px;">
+        </div>
+        <div class="text-center mb-4">
+            <button id="refresh-transactions" class="btn btn-primary" type="button">Refresh Transactions</button>
+            <button id="refresh-divisions" class="btn btn-warning" type="button">Refresh Divisions</button>
+            <button class="btn btn-success" id="openTransactionModal" type="button">Add Transactions</button>
+            <button id="add-bankAccount-button" class="btn btn-info" type="button">Add Bank Account</button>
+            <button class="btn btn-secondary" id="autofill-division-button" type="button">Autofill Transaction Division</button>
+            <button id="autofill-tags-button" class="btn btn-warning">Auto-Tag Transactions</button>
+        </div>
+        <div id="transactionStatus" class="text-center mt-3" style="font-weight: bold; display: none;"></div>
+        <div class="modal fade" id="autofillConfirmModal" tabindex="-1" aria-labelledby="autofillConfirmLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="autofillConfirmLabel">Confirm Auto-Categorization</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    All transactions with a division of <strong>"none"</strong> will be automatically categorized by AI. Do you want to continue?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-autofill">Yes, Categorize</button>
+                </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="autofillSuccessModal" tabindex="-1" aria-labelledby="autofillSuccessLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background-color: rgba(255, 255, 255, 0.95); border: none; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+            <div class="modal-header justify-content-center border-0">
+                <h5 class="modal-title text-center" id="autofillSuccessLabel" style="color: #333; font-weight: 600;">Success</h5>
+            </div>
+            <div class="modal-body text-center" style="color: #333; font-size: 1.1rem;">
+                Transactions successfully categorized!
+            </div>
+            </div>
+        </div>
+        </div>
+        <div class="modal fade" id="autofillTagsConfirmModal" tabindex="-1" aria-labelledby="autofillTagsConfirmLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="autofillTagsConfirmLabel">Confirm Auto-Tagging</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                All transactions with <strong>no tags</strong> will be automatically tagged by AI. Do you want to continue?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-autofill-tags">Yes, Auto-Tag</button>
+            </div>
+            </div>
+        </div>
+    </div>
+    <!-- Categorization Choice Modal -->
+    <div class="modal fade" id="categorizationChoiceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Categorize Your Transactions</h5></div>
+        <div class="modal-body">
+            <p>Would you like to categorize your transactions using AI or do it manually?</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="chooseManual">Manual</button>
+            <button class="btn btn-primary" id="chooseAI">AI</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Division Summary Modal -->
+    <div class="modal fade" id="divisionSummaryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Review & Adjust</h5></div>
+        <div class="modal-body">
+            <div id="divisionSummaryContent"></div>
+            <label>Starting Balance:
+            <input type="number" id="startingBalanceInput" class="form-control">
+            </label>
+            <p id="startingBalanceDate"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="saveStartingBalance">Save Changes</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
+
+    <!-- Success Modal for Tags -->
+    <div class="modal fade" id="autofillTagsSuccessModal" tabindex="-1" aria-labelledby="autofillTagsSuccessLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="background-color: rgba(255, 255, 255, 0.95); border: none; box-shadow: 0 0 10px rgba(0,0,0,0.2);">
+            <div class="modal-header justify-content-center border-0">
+                <h5 class="modal-title text-center" id="autofillTagsSuccessLabel" style="color: #333; font-weight: 600;">Success</h5>
+            </div>
+            <div class="modal-body text-center" style="color: #333; font-size: 1.1rem;">
+                Transactions successfully tagged!
+            </div>
+            </div>
+        </div>
+    </div>
+
+        {% if transactions %}
+            <table class="table table-group-divider table-bordered table-striped-columns" id="transactions-table">
+                <thead>
+                    <tr>
+                        <th class="sortable text-end" data-column="name" style="width: 20%;">Name</th>
+                        <th class="sortable text-end" data-column="tag">Account</th>
+                        <th class="sortable text-end" data-column="tag">Tags</th>
+                        <th class="sortable text-end" data-column="division">Division</th>
+                        <th class="sortable text-end" data-column="amount">Amount</th>
+                        <th class="sortable text-end" data-column="date">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions | reverse %}
+                        <tr class="record-row" data-record-id="{{ transaction.id }}">
+                            <td class="text-end column_width" data-column="name">{{ transaction.name }}</td>
+                            <td class="text-end column_width" data-column="account">{{ transaction.bank_account }}</td>
+                            <td class="text-end column_width truncate" data-column="tag">
+                                {% if transaction.tags %}
+                                    {% for tag in transaction.tags %}
+                                        {{ tag.name }}{% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    None
+                                {% endif %}
+                            </td>
+                            <td class="text-end column_width" data-column="division">{{ transaction.division }}</td>
+                            <td class="text-end column_width" data-column="amount">
+                                {% if transaction.amount > 0 %}
+                                    <span class="text-success">{{ transaction.amount | usd }}</span>
+                                {% else %}
+                                    <span class="text-danger">{{ transaction.amount | usd }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end column_width" data-column="date">{{ transaction.date | timestamp_editor }}</td>
+                        </tr>
+                        <tr class="edit-form" style="display: none; height: 0;">
+                            <td colspan="6" style="padding: 0; border: none;">
+                                <div class="popup-form" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1050; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); max-width: 600px; width: 100%;">
+                                    <form method="POST" action="{{ url_for('transaction.update_transaction', transaction_id=transaction.id) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"> 
+                                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                                            <label>Name: <input type="text" name="name" value="{{ transaction.name }}" class="form-control-history"></label>
+                                            <label>Account: <input type="text" name="bank_account" value="{{ transaction.bank_account }}" class="form-control-history"></label>
+                                            <label>Note: <textarea name="note" class="form-control-history">{{ transaction.note }}</textarea></label>
+                                            <label>Tags:
+                                                <div class="vertical-form-fields">
+                                                <select name="tags" id="tag-dropdown" class="form-control-history form-select">
+                                                    <option class="select" disabled selected>Add tags</option>
+                                                    {% for tag in tags_list %}
+                                                        <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                
+                                                <div id="selected-tags-container" class="selected-tags-container">
+                                                    {% for tag in transaction.tags %}
+                                                        <div class="selected-tag" data-tag="{{ tag.name }}">
+                                                            {{ tag.name }}
+                                                            <span class="remove-tag" data-tag="{{ tag.name }}"> ✕</span>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                                <input type="hidden" id="hidden-tags" name="tags" value='{{ transaction.tags | map(attribute="name") | list | tojson }}'>
+                                            </div>  
+
+                                            </label>
+                                            <label>Division:
+                                                <select name="division" class="form-control-history">
+                                                    {% for division in divisions_list %}
+                                                        <option value="{{ division }}" {% if division == transaction.division %}selected{% endif %}>{{ division }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </label>
+                                            <label>Amount: <input type="text" name="amount" value="{{ transaction.amount | usd }}" class="form-control-history"></label>
+                                            <label>Date: <input type="text" name="date" value="{{ transaction.date | timestamp_editor }}" class="form-control-history"></label>
+                                            <label>Time:<input type="time" id="time" name="time" class="form-control-history" value="{{ transaction.timestamp.strftime('%H:%M') if transaction.timestamp else '' }}"></label>
+                                            <input type="hidden" name="deleteBoolean" value="false">
+                                            <div class="form-buttons d-flex justify-content-between mt-3">
+                                                <button type="submit" name="deleteButton" class="btn btn-danger mini_buttons delete-transaction">Delete</button>
+                                                <button type="button" class="btn cancel-edit mini_buttons">Cancel</button>
+                                                <button type="submit" class="btn btn-primary mini_buttons">Update</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-center">No transactions found</p>
+        {% endif %}
+        <div id="transactionModal" class="modal" style="display:none;">
+                        <div class="modal-content" style="max-width: 600px; margin: 5% auto; background-color: white; padding: 20px; border-radius: 8px;">
+                            <span class="close-modal" style="float:right; cursor:pointer;">&times;</span>
+                            <ul class="nav nav-tabs mb-3" id="transactionTabs">
+                            <li class="nav-item">
+                                <a class="nav-link active" id="manual-tab" href="#">Record Transaction</a>
+                            </li>
+                            </ul>
+                            <div id="manual-form" class="tab-form">
+                                <form id="transactionForm" action="/" method="POST" class="needs-validation" novalidate>
+                                {{ form.hidden_tag() }}  
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="form_id" value="transactionForm">
+                                <div class="form-group">
+                                    <select required name="division" id="division" class="form-control form-select">
+                                    <option value="" disabled selected>Choose a Division</option>
+                                    <option class="select" value="allMoney">General</option>
+                                    <option class="select" value="save">Save</option>
+                                    <option class="select" value="spend">Spend</option>
+                                    <option class="select" value="give">Give</option>
+                                    <option class="select" value="invest">Invest</option>
+                                    <option class="select" value="expense">Expense</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                    Please select a division.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="input-container">
+                                    <input required name="recordedTransaction" type="number" step="0.01" class="form-control" placeholder="Transaction amount" onchange="correctDecimals(this)">
+                                    </div>
+                                    <div class="invalid-feedback">
+                                    Please enter a valid amount.
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <input name="description" class="form-control" type="text" placeholder="Description (optional)" maxlength="60">
+                                </div>
+                                <div class="form-group">
+                                    <select required id="tag" class="form-control form-select">
+                                    <option class="select" disabled selected>Select tags</option>
+                                    <option class="select" value="none">None</option>
+                                    {% for tag in tags_list %}
+                                        <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                                    {% endfor %}
+                                    </select>
+                                    <div id="selected-tags-container"></div>
+                                    <div id="create_tag_link">
+                                    <a href= "{{ url_for('settings.tags') }}">Create tag</a>
+                                    </div>
+                                </div> 
+                                <input type="hidden" name="tags" id="hidden-tags">
+                                <button type="submit" id="submit1" class="btn">Submit</button>
+                                </form>
+                            </div>
+    </div>
+</main>
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="display: none;">
+  <div class="overlay-background"></div>
+  <div class="overlay-content">
+    <div class="spinner-border text-light" style="width: 3rem; height: 3rem; display: block; margin: 0 auto;" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-3 text-light">Adding transactions... Do not refresh or leave!</p>
+  </div>
+</div>
+
+<style>
+#loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+}
+
+.overlay-background {
+  background: rgba(0, 0, 0, 0.6);
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+
+.overlay-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+</style>
+
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const table = document.getElementById('transactions-table');
+
+    if (table) {
+        const rows = document.querySelectorAll('.record-row');
+
+        rows.forEach(row => {
+            const editFormRow = row.nextElementSibling;
+            const editButton = row.querySelector('.toggle-edit');
+
+            function toggleEdit(show) {
+                if (show) {
+                    editFormRow.style.display = 'table-row';
+                    editFormRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    editFormRow.style.display = 'none';
+                }
+            }
+
+            row.addEventListener('dblclick', () => toggleEdit(true));
+            editButton?.addEventListener('click', () => toggleEdit(true));
+
+            const cancelButton = editFormRow.querySelector('.cancel-edit');
+            cancelButton?.addEventListener('click', () => toggleEdit(false));
+
+            // Tag Dropdown Logic
+            const selectBox = editFormRow.querySelector('#tag-dropdown');
+            const selectedContainer = editFormRow.querySelector('#selected-tags-container');
+            const hiddenTagsInput = editFormRow.querySelector('#hidden-tags');
+
+            let selectedTags = [];
+            try {
+                selectedTags = hiddenTagsInput.value ? JSON.parse(hiddenTagsInput.value) : [];
+            } catch (e) {
+                console.error("Error parsing hidden tags input:", e);
+                selectedTags = [];
+            }
+
+            function initializeSelectedTags() {
+                selectedContainer.innerHTML = '';
+                selectedTags.forEach(tag => addTagToContainer(tag));
+                updateDropdownOptions();
+            }
+
+            function addTagToContainer(tagName) {
+                const tagElement = document.createElement('div');
+                tagElement.className = 'selected-tag';
+                tagElement.textContent = tagName;
+
+                const removeButton = document.createElement('span');
+                removeButton.textContent = ' ✕';
+                removeButton.className = 'remove-tag';
+                removeButton.addEventListener('click', function () {
+                    selectedTags = selectedTags.filter(tag => tag !== tagName);
+                    hiddenTagsInput.value = JSON.stringify(selectedTags);
+                    selectedContainer.removeChild(tagElement);
+                    updateDropdownOptions();
+                });
+
+                tagElement.appendChild(removeButton);
+                selectedContainer.appendChild(tagElement);
+            }
+
+            function updateDropdownOptions() {
+                Array.from(selectBox.options).forEach(option => {
+                    option.style.display = selectedTags.includes(option.value) ? 'none' : '';
+                });
+            }
+
+            selectBox.addEventListener('change', function () {
+                const selectedValue = selectBox.value;
+                if (selectedValue && !selectedTags.includes(selectedValue)) {
+                    selectedTags.push(selectedValue);
+                    hiddenTagsInput.value = JSON.stringify(selectedTags);
+                    addTagToContainer(selectedValue);
+                    updateDropdownOptions();
+                    selectBox.selectedIndex = 0;
+                }
+            });
+
+            initializeSelectedTags();
+
+            const deleteButton = editFormRow.querySelector('.delete-transaction');
+            const form = editFormRow.querySelector('form');
+            if (deleteButton) {
+                deleteButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    if (form) {
+                        console.log("Form found. Setting deleteBoolean and submitting...");
+                        const deleteBoolean = form.elements['deleteBoolean'];
+                        if (deleteBoolean) {
+                            deleteBoolean.value = 'true';
+                        }
+                        form.submit();
+                    }
+                });
+            }
+        });
+
+    // Search Functionality
+        const searchBar = document.getElementById('search-bar');
+
+        searchBar.addEventListener('input', function () {
+            const query = searchBar.value.toLowerCase();
+            const rows = table.querySelectorAll('.record-row');
+
+            rows.forEach(row => {
+                const rowText = row.textContent.toLowerCase();
+                const editFormRow = row.nextElementSibling;
+                const shouldDisplay = rowText.includes(query);
+                row.style.display = shouldDisplay ? '' : 'none';
+
+                if (editFormRow && editFormRow.classList.contains('edit-form')) {
+                    editFormRow.style.display = 'none';
+                }
+            });
+        });
+
+        // Sort Functionality
+        const headers = table.querySelectorAll('.sortable');
+        headers.forEach(header => {
+            header.addEventListener('click', function () {
+                const column = header.getAttribute('data-column');
+                const ascending = header.classList.toggle('ascending');
+                sortTableByColumn(table, column, ascending);
+            });
+        });
+
+        function sortTableByColumn(table, column, ascending) {
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('.record-row'));
+            const columnIndex = Array.from(headers).findIndex(h => h.getAttribute('data-column') === column);
+
+            rows.sort((a, b) => {
+                const aText = a.children[columnIndex]?.textContent.trim() || '';
+                const bText = b.children[columnIndex]?.textContent.trim() || '';
+
+                if (!isNaN(parseFloat(aText)) && !isNaN(parseFloat(bText))) {
+                    return ascending
+                        ? parseFloat(aText) - parseFloat(bText)
+                        : parseFloat(bText) - parseFloat(aText);
+                }
+                return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+            });
+
+            rows.forEach(row => {
+                const editFormRow = row.nextElementSibling;
+                tbody.appendChild(row);
+                if (editFormRow && editFormRow.classList.contains('edit-form')) {
+                    tbody.appendChild(editFormRow);
+                }
+            });
+        }
+
+    // Refresh Button Logic
+        const refreshButton = document.getElementById('refresh-transactions');
+        refreshButton.addEventListener('click', async function () {
+            refreshButton.textContent = "Refreshing...";
+            refreshButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/refresh_transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                });
+
+                const data = await response.json();
+                if (data.status === "success") {
+                    location.reload();
+                } else {
+                    alert(data.message || "Failed to refresh transactions.");
+                }
+            } catch (error) {
+                console.error("Error refreshing transactions:", error);
+                alert("An error occurred while refreshing transactions.");
+            } finally {
+                refreshButton.textContent = "Refresh Transactions";
+                refreshButton.disabled = false;
+            }
+        });
+        }
+    });
+    //refresh divisions logic, delete when done:
+    const refreshDivisionsButton = document.getElementById('refresh-divisions');
+    refreshDivisionsButton.addEventListener('click', async function () {
+        refreshDivisionsButton.textContent = "Refreshing Divisions...";
+        refreshDivisionsButton.disabled = true;
+
+        try {
+            const response = await fetch('/api/refresh_divisions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': "{{ csrf_token }}"
+                }
+            });
+            const data = await response.json();
+            if (data.status === "success") {
+                alert(data.message);
+                location.reload();
+            } else {
+                alert(data.message || "Failed to refresh divisions.");
+            }
+        } catch (error) {
+            console.error("Error refreshing divisions:", error);
+            alert("An error occurred while refreshing divisions.");
+        } finally {
+            refreshDivisionsButton.textContent = "Refresh Divisions";
+            refreshDivisionsButton.disabled = false;
+        }
+    });
+
+document.getElementById("openTransactionModal").addEventListener("click", function () {
+    document.getElementById("transactionModal").style.display = "block";
+    setupTagSelector();  // <-- initialize tag handling now that modal is visible
+});
+
+document.querySelector(".close-modal").addEventListener("click", function () {
+    document.getElementById("transactionModal").style.display = "none";
+});
+
+
+
+// Close modal if clicking outside it
+window.addEventListener("click", function(event) {
+  const modal = document.getElementById("transactionModal");
+  if (event.target === modal) {
+    modal.style.display = "none";
+  }
+});
+
+function setupTagSelector(selectId = 'tag', containerId = 'selected-tags-container', hiddenInputId = 'hidden-tags') {
+    const selectBox = document.getElementById(selectId);
+    const selectedContainer = document.getElementById(containerId);
+    const hiddenTagsInput = document.getElementById(hiddenInputId);
+
+    if (!selectBox || !selectedContainer || !hiddenTagsInput) {
+        console.error('Missing required elements:', {
+            selectBox: !!selectBox,
+            selectedContainer: !!selectedContainer,
+            hiddenTagsInput: !!hiddenTagsInput
+        });
+        return;
+    }
+
+    let selectedTags = [];
+    try {
+        if (hiddenTagsInput.value) {
+            selectedTags = JSON.parse(hiddenTagsInput.value);
+            if (!Array.isArray(selectedTags)) {
+                console.error('hidden-tags value is not an array:', hiddenTagsInput.value);
+                selectedTags = [];
+            }
+        }
+    } catch (e) {
+        console.error('Error parsing hidden-tags value:', e);
+        selectedTags = [];
+    }
+
+    function addTagToContainer(tagName) {
+        const tagElement = document.createElement('div');
+        tagElement.className = 'selected-tag';
+        tagElement.textContent = tagName;
+
+        const removeButton = document.createElement('span');
+        removeButton.textContent = ' ✕';
+        removeButton.className = 'remove-tag';
+        removeButton.addEventListener('click', function () {
+            selectedTags = selectedTags.filter(tag => tag !== tagName);
+            hiddenTagsInput.value = JSON.stringify(selectedTags);
+            selectedContainer.removeChild(tagElement);
+            updateDropdownOptions();
+        });
+
+        tagElement.appendChild(removeButton);
+        selectedContainer.appendChild(tagElement);
+    }
+
+    function updateDropdownOptions() {
+        Array.from(selectBox.options).forEach(option => {
+            if (option.value && option.value !== 'none') {
+                option.style.display = selectedTags.includes(option.value) ? 'none' : '';
+            }
+        });
+    }
+
+    function initializeSelectedTags() {
+        // Preserve server-rendered tags if they exist
+        const existingTags = selectedContainer.querySelectorAll('.selected-tag');
+        if (existingTags.length > 0) {
+            existingTags.forEach(tagElement => {
+                const tagName = tagElement.dataset.tag || tagElement.textContent.trim().replace(' ✕', '');
+                if (!selectedTags.includes(tagName)) {
+                    selectedTags.push(tagName);
+                }
+                // Replace server-rendered remove buttons with new ones
+                const removeButton = tagElement.querySelector('.remove-tag');
+                if (removeButton) {
+                    removeButton.replaceWith(removeButton.cloneNode(true)); // Clone to remove old listeners
+                    const newRemoveButton = tagElement.querySelector('.remove-tag');
+                    newRemoveButton.addEventListener('click', function () {
+                        selectedTags = selectedTags.filter(tag => tag !== tagName);
+                        hiddenTagsInput.value = JSON.stringify(selectedTags);
+                        selectedContainer.removeChild(tagElement);
+                        updateDropdownOptions();
+                    });
+                }
+            });
+            hiddenTagsInput.value = JSON.stringify(selectedTags);
+        } else {
+            // No server-rendered tags, initialize from hidden input
+            selectedContainer.innerHTML = '';
+            selectedTags.forEach(tag => addTagToContainer(tag));
+        }
+        updateDropdownOptions();
+    }
+
+    // Remove existing listener to prevent duplicates
+    if (selectBox._changeHandler) {
+        selectBox.removeEventListener('change', selectBox._changeHandler);
+    }
+    selectBox._changeHandler = function () {
+        const selectedValue = selectBox.value;
+        if (selectedValue && selectedValue !== 'none' && !selectedTags.includes(selectedValue)) {
+            selectedTags.push(selectedValue);
+            hiddenTagsInput.value = JSON.stringify(selectedTags);
+            addTagToContainer(selectedValue);
+            updateDropdownOptions();
+            selectBox.selectedIndex = 0;
+        }
+    };
+    selectBox.addEventListener('change', selectBox._changeHandler);
+
+    initializeSelectedTags();
+}
+
+// --- Overlay Manager ---
+function showLoadingOverlay(message, showSpinner = true) {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.querySelector('p').textContent = message;
+    overlay.querySelector('.spinner-border').style.display = showSpinner ? 'block' : 'none';
+    overlay.style.display = 'flex';
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = 'none';
+}
+
+
+
+document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('transactionForm');
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    });
+
+    function correctDecimals(input) {
+        const value = parseFloat(input.value).toFixed(2);
+        input.value = value;
+    }
+  
+
+  
+  // --- Add Transactions Flow ---
+async function addTransactionsWithFeedback() {
+    showLoadingOverlay('Adding transactions... Do not refresh or leave!');
+
+    try {
+        const response = await fetch('/api/transactions');
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+            location.reload();
+        } else if (response.status === 202) {
+            showLoadingOverlay(data.message || 'Waiting on bank data. Please try again shortly.', false);
+        } else {
+            showLoadingOverlay(data.error || 'An error occurred while adding transactions.', false);
+        }
+    } catch (err) {
+        console.error('Transaction fetch error:', err);
+        showLoadingOverlay('A network error occurred. Please try again.', false);
+    }
+}
+
+
+document.addEventListener("DOMContentLoaded", function () {
+  const addBankButton = document.getElementById("add-bankAccount-button");
+
+  addBankButton.addEventListener("click", async function (event) {
+    event.preventDefault(); 
+
+    const csrfToken = "{{ csrf_token }}";
+
+    fetch("/api/create_link_token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      const handler = Plaid.create({
+        token: data.link_token,
+        onSuccess: function (public_token, metadata) {
+          showLoadingOverlay('Adding transactions... Do not refresh or leave!');
+          fetch("/api/set_access_token", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": csrfToken
+            },
+            body: JSON.stringify({
+              public_token: public_token
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            console.log("Access token obtained:", data);
+            addTransactionsWithFeedback();
+          })
+          .catch(error => {
+            console.error("Error exchanging public token:", error);
+            hideLoadingOverlay();
+          });
+        },
+        onExit: function (err, metadata) {
+          if (err) {
+            console.error("Error during Link flow:", err);
+          }
+        }
+      });
+
+      handler.open();
+    })
+    .catch(error => {
+      console.error("Error fetching link token:", error);
+    });
+  });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const autofillBtn = document.getElementById("autofill-division-button");
+  const confirmAutofillBtn = document.getElementById("confirm-autofill");
+  const successAlert = document.getElementById("autofillSuccessAlert");
+
+  autofillBtn.addEventListener("click", () => {
+    const confirmModal = new bootstrap.Modal(document.getElementById("autofillConfirmModal"));
+    confirmModal.show();
+  });
+
+  confirmAutofillBtn.addEventListener("click", async () => {
+    const confirmModal = bootstrap.Modal.getInstance(document.getElementById("autofillConfirmModal"));
+    document.activeElement.blur(); 
+    confirmModal.hide();
+    showLoadingOverlay("Autofilling divisions... Please wait!");
+
+    try {
+      const response = await fetch("/api/autofill_divisions", {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      hideLoadingOverlay();
+      const successModal = new bootstrap.Modal(document.getElementById("autofillSuccessModal"));
+        successModal.show();
+
+        // Optional: auto-dismiss after 2 seconds and refresh
+        setTimeout(() => {
+        successModal.hide();
+        window.location.reload();
+        }, 2000);
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      console.error("Error autofilling:", err);
+      hideLoadingOverlay();
+      alert("Something went wrong. Please try again.");
+    }
+  });
+});
+document.addEventListener('DOMContentLoaded', () => {
+  const autofillTagsBtn = document.getElementById("autofill-tags-button");
+  const confirmAutofillTagsBtn = document.getElementById("confirm-autofill-tags");
+
+  autofillTagsBtn.addEventListener("click", () => {
+    const confirmModal = new bootstrap.Modal(document.getElementById("autofillTagsConfirmModal"));
+    confirmModal.show();
+  });
+
+  confirmAutofillTagsBtn.addEventListener("click", async () => {
+    const confirmModal = bootstrap.Modal.getInstance(document.getElementById("autofillTagsConfirmModal"));
+    document.activeElement.blur(); 
+    confirmModal.hide();
+    showLoadingOverlay("Autofilling tags... Please wait!");
+
+    try {
+      const response = await fetch("/api/autofill_tags", {  // <-- New route
+        method: "POST",
+      });
+      const data = await response.json();
+
+      hideLoadingOverlay();
+      const successModal = new bootstrap.Modal(document.getElementById("autofillTagsSuccessModal"));
+      successModal.show();
+
+      // Optional: auto-dismiss after 2 seconds and refresh
+      setTimeout(() => {
+        successModal.hide();
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      console.error("Error autofilling tags:", err);
+      hideLoadingOverlay();
+      alert("Something went wrong. Please try again.");
+    }
+  });
+});
+document.addEventListener('DOMContentLoaded', async () => {
+    // After transactions load, check if initial sync
+    const transactionsResp = await fetch('/api/transactions');
+    const transactionsData = await transactionsResp.json();
+    if (data.status === "success" && data.show_categorization_modal) {
+        const choiceModal = new bootstrap.Modal(document.getElementById('categorizationChoiceModal'));
+        choiceModal.show();
+
+        document.getElementById('chooseAI').addEventListener('click', async () => {
+            choiceModal.hide();
+            // Run AI categorization
+            await fetch('/api/autofill_divisions', { method: 'POST' });
+            // Load division summary
+            const summaryResp = await fetch('/api/division_summary');
+            const summaryData = await summaryResp.json();
+
+            let html = '';
+            for (const [div, total] of Object.entries(summaryData.division_totals)) {
+                html += `<p><strong>${div}:</strong> $${total.toFixed(2)}</p>`;
+            }
+            document.getElementById('divisionSummaryContent').innerHTML = html;
+            document.getElementById('startingBalanceInput').value = summaryData.starting_balance.amount;
+            document.getElementById('startingBalanceDate').innerText = `As of: ${summaryData.starting_balance.date}`;
+
+            const summaryModal = new bootstrap.Modal(document.getElementById('divisionSummaryModal'));
+            summaryModal.show();
+
+            document.getElementById('saveStartingBalance').addEventListener('click', async () => {
+                const newAmount = parseFloat(document.getElementById('startingBalanceInput').value);
+                await fetch('/api/update_starting_balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: newAmount })
+                });
+                summaryModal.hide();
+                window.location.reload();
+            });
+        });
+
+        document.getElementById('chooseManual').addEventListener('click', () => {
+            choiceModal.hide();
+        });
+    }
+});
+
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+flask_session/
+*.code-workspace
+node_modules
+node_modules
+*.db
+instance/
+*.bak
+*.pyc
+.DS_Store
+.env.env
+.env

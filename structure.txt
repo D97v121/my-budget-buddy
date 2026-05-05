@@ -1,0 +1,66 @@
+.
+├── .DS_Store
+├── .env
+├── .gitignore
+├── .python-version
+├── .vscode
+├── app
+│   ├── __init__.py
+│   ├── ai_helpers.py
+│   ├── encryption_utils.py
+│   ├── filters.py
+│   ├── forms.py
+│   ├── health.py
+│   ├── helpers.py
+│   ├── models
+│   ├── plaid_helpers.py
+│   ├── routes
+│   ├── static
+│   └── templates
+├── app_legacy.py
+├── app.old.py
+├── archive
+│   ├── quick_fixes.py
+│   └── temporary.py
+├── cert.pem
+├── flask_session
+├── flask_session_dir
+├── instance
+│   ├── flask-session
+│   └── money.db
+├── key.pem
+├── main.py
+├── migrations
+│   ├── alembic.ini
+│   ├── env.py
+│   ├── README
+│   ├── script.py.mako
+│   └── versions
+├── models.py
+├── my_budget_buddy.db
+├── My-Budget-Buddy.code-workspace
+├── Procfile
+├── quickstart
+│   ├── .dockerignore
+│   ├── .env
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── assets
+│   ├── docker-compose.yml
+│   ├── frontend
+│   ├── go
+│   ├── java
+│   ├── LICENSE
+│   ├── Makefile
+│   ├── node
+│   ├── python
+│   ├── quickstart
+│   ├── README.md
+│   └── ruby
+├── README.md
+├── requirements.txt
+├── server.nginx
+├── structure.txt
+├── touch
+├── workspace
+└── wsgi.py

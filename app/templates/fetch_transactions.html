@@ -1,0 +1,127 @@
+{% extends "layout.html" %}
+
+{% block body %}
+<!-- Main Content -->
+<main>
+    <div class="mainHistory">
+        <h1>Transaction History</h1>
+        {% if transactions %}
+            <table class="table table-group-divider table-bordered table-striped-columns">
+                <thead>
+                    <th colspan="6" class="text-start center">{{ Bank }} Transaction Records</th>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th class="text-end">Tag</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end">Divisioin</th>
+                        <th class="text-end">Bank Name</th>
+                        <th class="text-end">Date</th>
+                        <th class="text-end">ID</th>
+                    </tr>
+
+                    {% for transaction in transactions %}
+                    <tr class="record-row" data-transaction-id="{{ transaction.id }}">
+                        <td class="text-end column_width">{{ transaction.tag }}</td>
+                        <td class="text-end column_width">{{ transaction.amount|usd }}</td>
+                        <td class="text-end column_width">{{ transaction.division or 'N/A' }}</td>
+                        <td class="text-end column_width">{{ transaction.bank_name or 'N/A' }}</td>
+                        <td class="text-end column_width">{{ transaction.date| timestamp_editor }}</td>
+                        <td class="text-end column_width">{{ transaction.id }}</td>
+                        <td class="edit-form text-end row_width" style="display: none;">
+                    </tr>
+                    <tr class="edit-form" style="display: none;">
+                        <form method="POST" action="{{ url_for('update_transaction', transaction_id=transaction.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}"> 
+                            <input type="hidden" name="transaction_id" value="{{ transaction.id }}">
+                            <td>
+                                <select required name="tag" id="tag" class="form-control form-select">
+                                    <option class="select" disabled selected>Choose a tag</option>
+                                    <option class="select" value="none">None</option>
+                                    {% for tag in tags_list %}
+                                      <option class="select" value="{{ tag.name }}">{{ tag.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td class="text-end column_width">{{ transaction.amount|usd }}</td>
+                            <td class="text-end column_width">{{ transaction.division or 'N/A' }}</td>
+                            <td>
+                                <input type="text" name="division" value="{{ transaction.division }}" class="form-control">
+                            </td>
+                            <td class="text-end column_width">{{ transaction.date| timestamp_editor }}</td>
+                            <td>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                                <button type="button" class="btn historyButtons cancel-edit">Cancel</button>
+                                <button type="button" class="btn historyButtons delete-transaction">Delete</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-center">No transactions found</p>
+        {% endif %}
+    </div>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const rows = document.querySelectorAll('.record-row');
+
+        rows.forEach(row => {
+            const editButton = row.querySelector('.edit-button');
+            const cancelButton = row.nextElementSibling?.querySelector('.cancel-edit'); // Select cancel button in the next row
+            const deleteButton = row.nextElementSibling?.querySelector('.delete-transaction');
+            const editFormRow = row.nextElementSibling; // The edit form row
+            const form = row.nextElementSibling?.querySelector('form');
+
+            // Toggle edit mode on double click or when edit button is clicked
+            row.addEventListener('dblclick', function() {
+                toggleEdit(row, true);
+            });
+
+            if (editButton) {
+                editButton.addEventListener('click', function() {
+                    toggleEdit(row, true);
+                });
+            }
+
+            if (cancelButton) {
+                cancelButton.addEventListener('click', function() {
+                    toggleEdit(row, false);
+                });
+            }
+
+            if (deleteButton) {
+                deleteButton.addEventListener('click', function() {
+                    if (form) {
+                        const deleteBoolean = form.querySelector('input[name="deleteBoolean"]');
+                        if (deleteBoolean) {
+                            deleteBoolean.value = 'true';
+                            toggleEdit(row, false);
+                        }
+                        // Submit the form
+                        form.submit();
+                    }
+                });
+            }
+        });
+
+        function toggleEdit(row, isEditing) {
+            const cells = row.querySelectorAll('td');
+            const editFormRow = row.nextElementSibling; // The edit form row
+
+            // Hide/show cells in the data row and show/hide the edit form row
+            cells.forEach(cell => {
+                cell.style.display = isEditing ? 'none' : '';
+            });
+
+            if (editFormRow) {
+                editFormRow.style.display = isEditing ? 'table-row' : 'none';
+            }
+        }
+    });
+</script>
+
+{% endblock %}

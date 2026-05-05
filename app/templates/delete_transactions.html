@@ -1,0 +1,13 @@
+<form action="/delete_transactions" method="post">
+    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}"> 
+    <button type="submit" class="btn btn-danger">Delete All Transactions</button>
+</form>
+<script>
+fetch('/delete_transactions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
+</script> 
