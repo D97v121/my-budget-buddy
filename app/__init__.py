@@ -34,7 +34,9 @@ def create_app():
     DATA_DIR = os.getenv("DATA_DIR", "/tmp/data")
     os.makedirs(DATA_DIR, exist_ok=True)
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv('DATABASE_URL', 'sqlite:///money.db')
+    db_url = os.getenv('DATABASE_URL', 'sqlite:///money.db')
+    print(f"DB URI AT STARTUP: {db_url}")
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'super-secret-key'
     app.config['SESSION_TYPE'] = 'filesystem'
@@ -77,10 +79,10 @@ def create_app():
 
     @event.listens_for(Engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL;")
-        cursor.execute("PRAGMA foreign_keys=ON;")
-        cursor.close()
+        if 'sqlite' in app.config.get('SQLALCHEMY_DATABASE_URI', ''):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL;")
+            cursor.close()
 
     def _bootstrap_db(app):
         with app.app_context():
