@@ -1,4 +1,20 @@
+import psycopg2
+from dotenv import load_dotenv
 import os
+
+# Load environment variables from .env
+load_dotenv()
+
+# Fetch variables
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Connect to the database
+connection = psycopg2.connect(DATABASE_URL)
+
+
+
+
+""" import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -51,3 +67,4 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(debug=False, port=8080, use_reloader=False)
+"""
