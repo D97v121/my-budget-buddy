@@ -43,7 +43,6 @@ ordered-set==4.1.0
 packaging==24.1
 pbr==6.1.1
 pillow==11.3.0
-plaid==0.1.7
 plaid-python==34.0.0
 psycopg2-binary==2.9.12
 pyaes==1.6.1
