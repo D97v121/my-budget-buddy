@@ -35,7 +35,6 @@ def create_app():
     os.makedirs(DATA_DIR, exist_ok=True)
 
     db_url = os.getenv('DATABASE_URL', 'sqlite:///money.db')
-    print(f"DB URI AT STARTUP: {db_url}")
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'super-secret-key'
