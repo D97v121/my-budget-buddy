@@ -10,7 +10,7 @@ Temporary login with one bank account already linked:
 
 Note: The demo uses Plaid's sandbox environment, so all bank data is simulated -- no real accounts are linked.
 
-<img width="1470" height="795" alt="Screenshot 2026-05-05 at 3 34 49 PM" src="https://github.com/user-attachments/assets/3452ee86-5f54-4e43-8591-54351539d21c" />
+<img width="1468" height="796" alt="Screenshot 2026-05-05 at 7 01 26 PM" src="https://github.com/user-attachments/assets/d5c296a1-4355-4f9c-a5f5-098944118469" />
 
 ## Tech
 Flask · SQLAlchemy · DigitalOcean App Platform (Postgres-ready)
